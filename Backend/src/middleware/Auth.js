@@ -19,7 +19,7 @@ module.exports = async (req, res, next) => {
     req.user = {
       _id: user.id,
       username: user.username,
-      email: user.email,
+      email: user.email
     };
     req.userId = user.id;
     next();
