@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
-const User = require("../models/User");
+const User = require("../models/User"); // Changed from './User' to '../models/User'
+// Remove any duplicate pool imports
+const bcrypt = require("bcryptjs");
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -20,7 +22,7 @@ exports.register = async (req, res) => {
 
     // Check if user exists
     const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
+      $or: [{ email }, { username }]
     });
 
     if (existingUser) {
@@ -29,10 +31,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Create user
     const user = await User.create({ username, email, password });
-
-    // Generate token
     const token = generateToken(user.id);
 
     res.status(201).json({
@@ -61,19 +60,16 @@ exports.login = async (req, res) => {
 
     const { username, password } = req.body;
 
-    // Find user
     const user = await User.findByUsername(username);
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate token
     const token = generateToken(user.id);
 
     res.json({
@@ -98,6 +94,3 @@ exports.getCurrentUser = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-// Need to import bcrypt at top
-const bcrypt = require("bcryptjs");
