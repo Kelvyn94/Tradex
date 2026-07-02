@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const { validateRegister, validateLogin } = require("../middleware/validation");
-const auth = require("../middleware/auth");
+const auth = require("../middleware/auth"); // Changed from './auth' to '../middleware/auth'
 
 // Public routes
 router.post("/register", validateRegister, authController.register);
