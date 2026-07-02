@@ -22,7 +22,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://tradex-frontend.vercel.app", // Your Vercel URL
+      "https://tradex-silk-three.vercel.app", 
       "https://tradex-backend.onrender.com", // Your Render URL
     ],
     credentials: true,
