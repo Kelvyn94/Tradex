@@ -2,74 +2,48 @@ const pool = require("../config/database");
 
 class Trade {
   static async create(tradeData) {
-    const {
-      user_id,
-      date,
-      instrument,
-      direction,
-      entry,
-      exit,
-      size,
-      stop_loss,
-      take_profit,
-      tags = [],
-      notes = "",
-      instrumentType = "forex", // 'forex' or 'gold'
-      pipValue = 0.1, // $0.10 per pip for 0.01 lots
-    } = tradeData;
+  const {
+    user_id,
+    date,
+    instrument,
+    direction,
+    entry,
+    exit,
+    size,
+    stop_loss,
+    take_profit,
+    tags = [],
+    notes = ''
+  } = tradeData;
 
-    // Calculate PnL
-    const diff = direction === "Long" ? exit - entry : entry - exit;
-    const pnl = diff * size;
-    const pnl_percentage = entry !== 0 ? (diff / entry) * 100 : 0;
+  // Calculate PnL
+  const diff = direction === 'Long' ? exit - entry : entry - exit;
+  const pnl = diff * size;
+  const pnl_percentage = entry !== 0 ? (diff / entry) * 100 : 0;
 
-    // Calculate pip difference and profit in pips
-    const pipDiff = Math.abs(exit - entry) * 10000; // For 4-decimal instruments
-    const pips = direction === "Long" ? pipDiff : -pipDiff;
-    const pipProfit = pips * pipValue * size; // pipValue is per lot
-
-    // Calculate Risk:Reward ratio
-    let risk_reward_ratio = null;
-    if (entry && stop_loss && take_profit) {
-      const risk = Math.abs(entry - stop_loss);
-      const reward = Math.abs(take_profit - entry);
-      risk_reward_ratio = risk === 0 ? null : reward / risk;
-    }
-
-    // Calculate risk in dollars (for risk management)
-    const riskInDollars = stop_loss ? Math.abs(entry - stop_loss) * size : 0;
-
-    const result = await pool.query(
-      `INSERT INTO trades (
-        user_id, date, instrument, direction, entry, exit, size,
-        stop_loss, take_profit, pnl, pnl_percentage, risk_reward_ratio, 
-        tags, notes, instrument_type, pip_value, pips, pip_profit, risk_in_dollars
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-      RETURNING *`,
-      [
-        user_id,
-        date,
-        instrument,
-        direction,
-        entry,
-        exit,
-        size,
-        stop_loss || null,
-        take_profit || null,
-        pnl,
-        pnl_percentage,
-        risk_reward_ratio,
-        tags,
-        notes,
-        instrumentType,
-        pipValue,
-        pips,
-        pipProfit,
-        riskInDollars,
-      ],
-    );
-    return result.rows[0];
+  // Calculate Risk:Reward ratio
+  let risk_reward_ratio = null;
+  if (entry && stop_loss && take_profit) {
+    const risk = Math.abs(entry - stop_loss);
+    const reward = Math.abs(take_profit - entry);
+    risk_reward_ratio = risk === 0 ? null : reward / risk;
   }
+
+  const result = await pool.query(
+    `INSERT INTO trades (
+      user_id, date, instrument, direction, entry, exit, size,
+      stop_loss, take_profit, pnl, pnl_percentage, risk_reward_ratio, tags, notes
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+    RETURNING *`,
+    [
+      user_id, date, instrument, direction, entry, exit, size,
+      stop_loss || null, take_profit || null,
+      pnl, pnl_percentage, risk_reward_ratio,
+      tags, notes
+    ]
+  );
+  return result.rows[0];
+}
 
   // ... rest of the methods remain the same
 
