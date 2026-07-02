@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const tradeController = require("../controllers/tradeController");
-const { validateTrade, validateTradeId } = require("../middleware/validation");
-const auth = require("../middleware/auth");
+const { validateTrade, validateTradeId } = require("../middleware/validation"); // lowercase 'validation'
+const auth = require("../middleware/auth"); // lowercase 'auth'
 
 // All trade routes require authentication
 router.use(auth);
