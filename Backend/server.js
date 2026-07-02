@@ -4,7 +4,6 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 require("dotenv").config();
 
-// Import pool directly
 const pool = require("./src/config/database");
 const initDatabase = require("./src/config/initDB");
 const authRoutes = require("./src/routes/authRoutes");
@@ -13,7 +12,7 @@ const analyticsRoutes = require("./src/routes/analyticsRoutes");
 
 const app = express();
 
-// Initialize database (only if needed - can comment out after first run)
+// Initialize database (comment out after first run)
 // initDatabase();
 
 // Middleware
@@ -23,12 +22,13 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      process.env.FRONTEND_URL,
-    ].filter(Boolean),
+      "https://tradex-frontend.vercel.app", // Your Vercel URL
+      "https://tradex-backend.onrender.com", // Your Render URL
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  }),
+  })
 );
 app.use(morgan("dev"));
 app.use(express.json());
@@ -47,14 +47,13 @@ app.get("/api/health", async (req, res) => {
       status: "OK",
       message: "Server is running",
       database: "Connected to Neon PostgreSQL",
-      time: result.rows[0].now,
+      time: result.rows[0].now
     });
   } catch (error) {
-    console.error("Health check error:", error);
     res.status(500).json({
       status: "ERROR",
       message: "Database connection failed",
-      error: error.message,
+      error: error.message
     });
   }
 });
