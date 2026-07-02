@@ -1,3 +1,8 @@
+const jwt = require("jsonwebtoken");
+const { validationResult } = require("express-validator");
+const User = require("../models/User"); 
+const bcrypt = require("bcryptjs");
+
 const Trade = require("../models/Trade");
 
 exports.getDashboardData = async (req, res) => {
