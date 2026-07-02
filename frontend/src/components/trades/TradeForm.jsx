@@ -1,64 +1,38 @@
-import React, { useState, useEffect } from "react";
-import {
-  X,
-  Calculator,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Activity,
-} from "lucide-react";
-import toast from "react-hot-toast";
+import React, { useState, useEffect } from 'react';
+import { X, Calculator, TrendingUp, TrendingDown } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-const TradeForm = ({
-  isOpen,
-  onClose,
-  onSave,
-  trade = null,
-  isEditing = false,
-}) => {
+const TradeForm = ({ isOpen, onClose, onSave, trade = null, isEditing = false }) => {
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split("T")[0],
-    instrument: "XAUUSD",
-    direction: "Long",
-    entry: "",
-    exit: "",
-    size: 0.01, // Default 0.01 lots
-    stopLoss: "",
-    takeProfit: "",
-    tags: "",
-    notes: "",
-    instrumentType: "gold", // 'forex' or 'gold'
+    date: new Date().toISOString().split('T')[0],
+    instrument: '',
+    direction: 'Long',
+    entry: '',
+    exit: '',
+    size: 0.01,
+    stopLoss: '',
+    takeProfit: '',
+    tags: '',
+    notes: '',
   });
 
   const [preview, setPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Common instruments
-  const commonInstruments = [
-    { symbol: "XAUUSD", name: "Gold", type: "gold", pipValue: 0.1 },
-    { symbol: "XAGUSD", name: "Silver", type: "gold", pipValue: 0.1 },
-    { symbol: "EURUSD", name: "EUR/USD", type: "forex", pipValue: 0.1 },
-    { symbol: "GBPUSD", name: "GBP/USD", type: "forex", pipValue: 0.1 },
-    { symbol: "USDJPY", name: "USD/JPY", type: "forex", pipValue: 0.1 },
-    { symbol: "AUDUSD", name: "AUD/USD", type: "forex", pipValue: 0.1 },
-    { symbol: "USDCAD", name: "USD/CAD", type: "forex", pipValue: 0.1 },
-  ];
-
   // Load trade data for editing
   useEffect(() => {
     if (trade && isEditing) {
       setFormData({
-        date: trade.date || new Date().toISOString().split("T")[0],
-        instrument: trade.instrument || "XAUUSD",
-        direction: trade.direction || "Long",
-        entry: trade.entry || "",
-        exit: trade.exit || "",
+        date: trade.date || new Date().toISOString().split('T')[0],
+        instrument: trade.instrument || '',
+        direction: trade.direction || 'Long',
+        entry: trade.entry || '',
+        exit: trade.exit || '',
         size: trade.size || 0.01,
-        stopLoss: trade.stopLoss || "",
-        takeProfit: trade.takeProfit || "",
-        tags: Array.isArray(trade.tags) ? trade.tags.join(", ") : "",
-        notes: trade.notes || "",
-        instrumentType: trade.instrumentType || "gold",
+        stopLoss: trade.stopLoss || '',
+        takeProfit: trade.takeProfit || '',
+        tags: Array.isArray(trade.tags) ? trade.tags.join(', ') : '',
+        notes: trade.notes || '',
       });
     }
   }, [trade, isEditing]);
@@ -66,15 +40,7 @@ const TradeForm = ({
   // Calculate P&L preview
   useEffect(() => {
     calculatePreview();
-  }, [
-    formData.entry,
-    formData.exit,
-    formData.size,
-    formData.stopLoss,
-    formData.takeProfit,
-    formData.direction,
-    formData.instrumentType,
-  ]);
+  }, [formData.entry, formData.exit, formData.size, formData.stopLoss, formData.takeProfit, formData.direction]);
 
   const calculatePreview = () => {
     const entry = parseFloat(formData.entry);
@@ -88,16 +54,10 @@ const TradeForm = ({
       return;
     }
 
-    const diff = formData.direction === "Long" ? exit - entry : entry - exit;
+    const diff = formData.direction === 'Long' ? exit - entry : entry - exit;
     const pnl = diff * size;
     const pnlPct = (diff / entry) * 100;
-
-    // Calculate pips
-    const pipDiff = Math.abs(exit - entry) * 10000;
-    const pips = formData.direction === "Long" ? pipDiff : -pipDiff;
-    const pipValue = formData.instrumentType === "gold" ? 0.1 : 0.1;
-    const pipProfit = pips * pipValue * size;
-
+    
     let riskReward = null;
     let riskInDollars = null;
     if (entry && stopLoss && takeProfit) {
@@ -110,27 +70,15 @@ const TradeForm = ({
     setPreview({
       pnl,
       pnlPct,
-      pips,
-      pipProfit,
       riskReward,
       riskInDollars,
       isWin: pnl >= 0,
     });
   };
 
-  const handleInstrumentChange = (e) => {
-    const symbol = e.target.value;
-    const instrument = commonInstruments.find((i) => i.symbol === symbol);
-    setFormData((prev) => ({
-      ...prev,
-      instrument: symbol,
-      instrumentType: instrument ? instrument.type : "gold",
-    }));
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -141,22 +89,20 @@ const TradeForm = ({
     const exit = parseFloat(formData.exit);
     const size = parseFloat(formData.size);
     const stopLoss = formData.stopLoss ? parseFloat(formData.stopLoss) : null;
-    const takeProfit = formData.takeProfit
-      ? parseFloat(formData.takeProfit)
-      : null;
+    const takeProfit = formData.takeProfit ? parseFloat(formData.takeProfit) : null;
 
     // Validate
     if (!formData.instrument || isNaN(entry) || isNaN(exit) || isNaN(size)) {
-      toast.error("Please fill in all required fields with valid numbers");
+      toast.error('Please fill in all required fields with valid numbers');
       return;
     }
 
     if (entry <= 0 || exit <= 0 || size <= 0) {
-      toast.error("Entry, Exit, and Size must be positive numbers");
+      toast.error('Entry, Exit, and Size must be positive numbers');
       return;
     }
 
-    // Prepare data for API
+    // Prepare data for API - simplified, no instrument_type
     const tradeData = {
       date: formData.date,
       instrument: formData.instrument.toUpperCase().trim(),
@@ -166,23 +112,17 @@ const TradeForm = ({
       size: size,
       stopLoss: stopLoss,
       takeProfit: takeProfit,
-      tags: formData.tags
-        ? formData.tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [],
-      notes: formData.notes || "",
-      instrumentType: formData.instrumentType,
+      tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      notes: formData.notes || '',
     };
 
-    console.log("Sending trade data:", JSON.stringify(tradeData, null, 2));
-
+    console.log('Sending trade data:', JSON.stringify(tradeData, null, 2));
+    
     setSubmitting(true);
     try {
       await onSave(tradeData);
     } catch (error) {
-      console.error("Save error:", error);
+      console.error('Save error:', error);
     } finally {
       setSubmitting(false);
     }
@@ -196,7 +136,7 @@ const TradeForm = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-dark-700">
           <h2 className="text-xl font-bold text-white">
-            {isEditing ? "Edit Trade" : "New Trade Entry"}
+            {isEditing ? 'Edit Trade' : 'New Trade Entry'}
           </h2>
           <button
             onClick={onClose}
@@ -211,9 +151,7 @@ const TradeForm = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Date */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Date *
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Date *</label>
               <input
                 type="date"
                 name="date"
@@ -224,53 +162,32 @@ const TradeForm = ({
               />
             </div>
 
-            {/* Instrument */}
+            {/* Instrument - Free text input */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Instrument *
-              </label>
-              <select
+              <label className="block text-sm font-medium text-gray-300 mb-1">Instrument *</label>
+              <input
+                type="text"
                 name="instrument"
                 value={formData.instrument}
-                onChange={handleInstrumentChange}
+                onChange={handleChange}
+                placeholder="e.g., XAUUSD, EURUSD, AAPL, BTCUSD"
                 className="input-dark"
                 required
-              >
-                {commonInstruments.map((inst) => (
-                  <option key={inst.symbol} value={inst.symbol}>
-                    {inst.symbol} ({inst.name})
-                  </option>
-                ))}
-                <option value="CUSTOM">Custom</option>
-              </select>
-              {formData.instrument === "CUSTOM" && (
-                <input
-                  type="text"
-                  name="instrument"
-                  value={formData.instrument}
-                  onChange={handleChange}
-                  placeholder="Enter instrument symbol"
-                  className="input-dark mt-2"
-                  required
-                />
-              )}
+              />
+              <p className="text-xs text-gray-500 mt-1">Enter any instrument (Gold, Forex, Stocks, Crypto)</p>
             </div>
 
             {/* Direction */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Direction *
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Direction *</label>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({ ...prev, direction: "Long" }))
-                  }
+                  onClick={() => setFormData(prev => ({ ...prev, direction: 'Long' }))}
                   className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all ${
-                    formData.direction === "Long"
-                      ? "bg-success/20 text-success border border-success"
-                      : "bg-dark-900 text-gray-400 border border-dark-700 hover:border-success/50"
+                    formData.direction === 'Long'
+                      ? 'bg-success/20 text-success border border-success'
+                      : 'bg-dark-900 text-gray-400 border border-dark-700 hover:border-success/50'
                   }`}
                 >
                   <TrendingUp className="w-4 h-4 inline mr-1" />
@@ -278,13 +195,11 @@ const TradeForm = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({ ...prev, direction: "Short" }))
-                  }
+                  onClick={() => setFormData(prev => ({ ...prev, direction: 'Short' }))}
                   className={`flex-1 py-2 px-4 rounded-lg font-bold transition-all ${
-                    formData.direction === "Short"
-                      ? "bg-danger/20 text-danger border border-danger"
-                      : "bg-dark-900 text-gray-400 border border-dark-700 hover:border-danger/50"
+                    formData.direction === 'Short'
+                      ? 'bg-danger/20 text-danger border border-danger'
+                      : 'bg-dark-900 text-gray-400 border border-dark-700 hover:border-danger/50'
                   }`}
                 >
                   <TrendingDown className="w-4 h-4 inline mr-1" />
@@ -295,9 +210,7 @@ const TradeForm = ({
 
             {/* Entry Price */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Entry Price *
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Entry Price *</label>
               <input
                 type="number"
                 name="entry"
@@ -312,9 +225,7 @@ const TradeForm = ({
 
             {/* Exit Price */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Exit Price *
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Exit Price *</label>
               <input
                 type="number"
                 name="exit"
@@ -327,11 +238,9 @@ const TradeForm = ({
               />
             </div>
 
-            {/* Position Size (Lots) */}
+            {/* Position Size */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Position Size (Lots) *
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Position Size (Lots/Units) *</label>
               <input
                 type="number"
                 name="size"
@@ -343,16 +252,12 @@ const TradeForm = ({
                 className="input-dark"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                0.01 lots = 1 micro lot
-              </p>
+              <p className="text-xs text-gray-500 mt-1">0.01 lots = 1 micro lot (for Forex/Gold)</p>
             </div>
 
             {/* Stop Loss */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Stop Loss
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Stop Loss</label>
               <input
                 type="number"
                 name="stopLoss"
@@ -366,9 +271,7 @@ const TradeForm = ({
 
             {/* Take Profit */}
             <div className="form-group">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Take Profit
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Take Profit</label>
               <input
                 type="number"
                 name="takeProfit"
@@ -382,24 +285,20 @@ const TradeForm = ({
 
             {/* Tags */}
             <div className="form-group md:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Tags (comma-separated)
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Tags (comma-separated)</label>
               <input
                 type="text"
                 name="tags"
                 value={formData.tags}
                 onChange={handleChange}
-                placeholder="e.g., gold, breakout, momentum"
+                placeholder="e.g., gold, breakout, momentum, scalping"
                 className="input-dark"
               />
             </div>
 
             {/* Notes */}
             <div className="form-group md:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Notes
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
               <textarea
                 name="notes"
                 value={formData.notes}
@@ -416,57 +315,34 @@ const TradeForm = ({
             <div className="mt-6 p-4 bg-dark-900 rounded-lg border border-dark-700">
               <div className="flex items-center gap-2 mb-3">
                 <Calculator className="w-4 h-4 text-accent" />
-                <span className="text-sm font-medium text-gray-300">
-                  Live P&L Preview
-                </span>
+                <span className="text-sm font-medium text-gray-300">Live P&L Preview</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-xs text-gray-500">P&L ($)</p>
-                  <p
-                    className={`text-lg font-mono font-bold ${preview.isWin ? "text-success" : "text-danger"}`}
-                  >
-                    {preview.isWin ? "+" : ""}
-                    {preview.pnl.toFixed(2)}
+                  <p className={`text-lg font-mono font-bold ${preview.isWin ? 'text-success' : 'text-danger'}`}>
+                    {preview.isWin ? '+' : ''}{preview.pnl.toFixed(2)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">P&L (%)</p>
-                  <p
-                    className={`text-lg font-mono font-bold ${preview.isWin ? "text-success" : "text-danger"}`}
-                  >
-                    {preview.isWin ? "+" : ""}
-                    {preview.pnlPct.toFixed(2)}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Pips</p>
-                  <p
-                    className={`text-lg font-mono font-bold ${preview.isWin ? "text-success" : "text-danger"}`}
-                  >
-                    {preview.isWin ? "+" : ""}
-                    {preview.pips.toFixed(1)}
+                  <p className={`text-lg font-mono font-bold ${preview.isWin ? 'text-success' : 'text-danger'}`}>
+                    {preview.isWin ? '+' : ''}{preview.pnlPct.toFixed(2)}%
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Risk:Reward</p>
                   <p className="text-lg font-mono font-bold text-accent">
-                    {preview.riskReward
-                      ? `${preview.riskReward.toFixed(2)}:1`
-                      : "—"}
+                    {preview.riskReward ? `${preview.riskReward.toFixed(2)}:1` : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Risk Amount</p>
+                  <p className="text-lg font-mono font-bold text-warning">
+                    {preview.riskInDollars ? `$${preview.riskInDollars.toFixed(2)}` : '—'}
                   </p>
                 </div>
               </div>
-              {preview.riskInDollars && (
-                <div className="mt-2 pt-2 border-t border-dark-700">
-                  <p className="text-xs text-gray-500">
-                    Risk Amount:{" "}
-                    <span className="text-warning font-bold">
-                      ${preview.riskInDollars.toFixed(2)}
-                    </span>
-                  </p>
-                </div>
-              )}
             </div>
           )}
 
@@ -485,11 +361,7 @@ const TradeForm = ({
               className="flex-1 btn-primary"
               disabled={submitting}
             >
-              {submitting
-                ? "Saving..."
-                : isEditing
-                  ? "Update Trade"
-                  : "Save Trade"}
+              {submitting ? 'Saving...' : (isEditing ? 'Update Trade' : 'Save Trade')}
             </button>
           </div>
         </form>
