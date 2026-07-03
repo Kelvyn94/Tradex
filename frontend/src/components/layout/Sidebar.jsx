@@ -1,12 +1,20 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, ListTodo, BarChart3 } from "lucide-react";
+import {
+  LayoutDashboard,
+  ListTodo,
+  BarChart3,
+  Brain,
+  Settings,
+} from "lucide-react";
 
 const Sidebar = () => {
   const navItems = [
     { path: "/", icon: LayoutDashboard, label: "Dashboard" },
     { path: "/trades", icon: ListTodo, label: "Trade Log" },
     { path: "/analytics", icon: BarChart3, label: "Analytics" },
+    { path: "/ai-assistant", icon: Brain, label: "AI Assistant" },
+    { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
   return (
@@ -38,6 +46,9 @@ const Sidebar = () => {
             <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
             <span className="hidden lg:inline">System Online</span>
           </div>
+          <p className="text-xs text-gray-600 mt-1 hidden lg:block">
+            TRADEX v2.0.0
+          </p>
         </div>
       </div>
     </aside>
