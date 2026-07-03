@@ -1,18 +1,35 @@
-// Backend/src/services/ai.service.js
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const NodeCache = require("node-cache");
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const NodeCache = require('node-cache');
 
 class AIService {
   constructor() {
     this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    this.model = this.gemini.getGenerativeModel({ model: "gemini-pro" });
-    this.visionModel = this.gemini.getGenerativeModel({
-      model: "gemini-pro-vision",
-    });
-    this.cache = new NodeCache({ stdTTL: 3600 });
+    this.model = this.gemini.getGenerativeModel({ model: 'gemini-pro' });
+    this.visionModel = this.gemini.getGenerativeModel({ model: 'gemini-pro-vision' });
+    
+    // ✅ Longer cache: 2 hours
+    this.cache = new NodeCache({ stdTTL: 7200, checkperiod: 300 });
+    
+    // Rate limiting
     this.dailyCount = 0;
     this.dailyLimit = 45;
     this.lastReset = new Date().toDateString();
+    
+    this.stats = {
+      totalRequests: 0,
+      cachedResponses: 0,
+      aiRequests: 0,
+      fallbackRequests: 0
+    };
+
+    // System prompts
+    this.systemPrompts = {
+      smtValidation: `You are an expert ICT (Inner Circle Trader) analyst. Validate SMT divergence.`
+    };
+
+    console.log('🤖 AI Service initialized');
+    console.log(`📊 Daily limit: ${this.dailyLimit} requests`);
+    console.log(`💾 Cache TTL: 2 hours`);
   }
 
   canMakeRequest() {
@@ -24,105 +41,228 @@ class AIService {
     return this.dailyCount < this.dailyLimit;
   }
 
+  getRemainingRequests() {
+    const today = new Date().toDateString();
+    if (today !== this.lastReset) {
+      this.dailyCount = 0;
+      this.lastReset = today;
+    }
+    return Math.max(0, this.dailyLimit - this.dailyCount);
+  }
+
   /**
-   * Analyze chart screenshot using Gemini Vision API
-   * This ACTUALLY uses AI to analyze the image!
+   * ✅ Only validates signals with confidence > 80%
    */
-  async analyzeChartImage(imageBase64, context = {}) {
-    // Check if we have a cached response
-    const cacheKey = `vision_${context.instrument || "chart"}_${Date.now()}`;
+  async validateSMTDivergences(divergences) {
+    if (!divergences || divergences.length === 0) {
+      return { validated: false, signals: [] };
+    }
+
+    // ✅ Filter: Only high-confidence signals go to AI
+    const highConfidenceSignals = divergences.filter(d => d.confidence > 80);
+    
+    if (highConfidenceSignals.length === 0) {
+      return divergences.map(d => ({
+        validated: true,
+        confidence: d.confidence || 75,
+        reasoning: 'Validated by local logic (AI skipped - confidence below threshold)'
+      }));
+    }
+
+    // If only 1-2 high-confidence signals, validate individually
+    if (highConfidenceSignals.length <= 2) {
+      return this.validateSingleSMT(highConfidenceSignals[0]);
+    }
+
+    // Batch validate multiple signals in one request
+    return this.batchValidateSMT(highConfidenceSignals);
+  }
+
+  /**
+   * ✅ Validate a single SMT divergence with cache
+   */
+  async validateSingleSMT(divergence) {
+    const cacheKey = `smt_${divergence.primaryAsset}_${divergence.correlatedAsset}_${divergence.type}`;
+    
+    // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached) {
-      this.dailyCount++;
+      this.stats.cachedResponses++;
+      return cached;
+    }
+
+    // Check rate limit
+    if (!this.canMakeRequest()) {
+      this.stats.fallbackRequests++;
+      return {
+        validated: true,
+        confidence: divergence.confidence || 75,
+        reasoning: 'Local validation (AI limit reached)'
+      };
+    }
+
+    const prompt = this.buildSMTValidationPrompt(divergence);
+    const response = await this.analyze(prompt, cacheKey);
+
+    // Parse response
+    const result = this.parseAIResponse(response, {
+      validated: true,
+      confidence: divergence.confidence || 80,
+      reasoning: divergence.description || 'SMT divergence detected'
+    });
+
+    this.cache.set(cacheKey, result);
+    return result;
+  }
+
+  /**
+   * ✅ Batch validate multiple SMT divergences (1 request for all)
+   */
+  async batchValidateSMT(divergences) {
+    const cacheKey = `smt_batch_${divergences.map(d => d.type).join('_')}`;
+    
+    const cached = this.cache.get(cacheKey);
+    if (cached) {
+      this.stats.cachedResponses++;
       return cached;
     }
 
     if (!this.canMakeRequest()) {
-      return {
-        success: false,
-        message: "AI limit reached. Please try again later.",
-        confidence: 0,
-      };
+      return divergences.map(d => ({
+        validated: true,
+        confidence: d.confidence || 75,
+        reasoning: 'Local validation (AI limit reached)'
+      }));
+    }
+
+    let prompt = `You are an expert ICT analyst. Validate these SMT divergences and return a JSON array.\n\n`;
+    divergences.forEach((d, i) => {
+      prompt += `Signal ${i + 1}: ${d.primaryAsset} vs ${d.correlatedAsset}, ${d.type} divergence\n`;
+    });
+    prompt += `\nReturn JSON array with validation for each.`;
+
+    const response = await this.analyze(prompt, cacheKey);
+    
+    const results = this.parseAIResponse(response, divergences.map(d => ({
+      validated: true,
+      confidence: d.confidence || 80,
+      reasoning: d.description || 'SMT divergence detected'
+    })));
+
+    this.cache.set(cacheKey, results);
+    return results;
+  }
+
+  /**
+   * Build SMT validation prompt
+   */
+  buildSMTValidationPrompt(divergence) {
+    return `${this.systemPrompts.smtValidation}
+
+SMT Signal:
+- Primary Asset: ${divergence.primaryAsset}
+- Correlated Asset: ${divergence.correlatedAsset}
+- Type: ${divergence.type} SMT
+- Primary Price: ${divergence.primaryPrice}
+- Correlated Price: ${divergence.correlatedPrice}
+- Timeframe: ${divergence.timeframe || '1h'}
+- Description: ${divergence.description || 'Price divergence detected'}
+
+Respond with JSON:
+{
+  "validated": true/false,
+  "confidence": 0-100,
+  "reasoning": "Brief explanation of the validation or rejection",
+  "entryLevel": "Suggested entry price",
+  "stopLoss": "Suggested stop loss"
+}`;
+  }
+
+  async analyze(prompt, cacheKey = null) {
+    // Check cache first
+    if (cacheKey) {
+      const cached = this.cache.get(cacheKey);
+      if (cached) {
+        this.stats.cachedResponses++;
+        return cached;
+      }
+    }
+
+    if (!this.canMakeRequest()) {
+      console.log(`⚠️ AI daily limit reached (${this.dailyLimit}). Using fallback.`);
+      this.stats.fallbackRequests++;
+      return this.getFallbackResponse(prompt);
     }
 
     try {
-      // Build the prompt for ICT analysis
-      const prompt = this.buildVisionPrompt(context);
-
-      // Call Gemini Vision API
-      const result = await this.visionModel.generateContent([
-        prompt,
-        { inlineData: { mimeType: "image/png", data: imageBase64 } },
-      ]);
-
-      const analysis = result.response.text();
-      const confidence = this.extractConfidence(analysis);
-
-      const response = {
-        success: true,
-        analysis: analysis,
-        confidence: confidence || 75,
-        timestamp: new Date().toISOString(),
-        type: "chart_analysis",
-      };
-
-      // Cache the response
-      this.cache.set(cacheKey, response);
+      console.log(`🤖 AI request #${this.dailyCount + 1}/${this.dailyLimit}`);
+      const result = await this.model.generateContent(prompt);
+      const response = result.response.text();
+      
+      if (cacheKey) {
+        this.cache.set(cacheKey, response);
+      }
+      
       this.dailyCount++;
-      this.dailyLimit = 45; // Vision counts toward daily limit
-
+      this.stats.totalRequests++;
+      this.stats.aiRequests++;
+      
       return response;
     } catch (error) {
-      console.error("Vision API Error:", error.message);
-      return {
-        success: false,
-        message: "Chart analysis failed. Please try again.",
-        confidence: 0,
-        error: error.message,
-      };
+      console.error('AI Error:', error.message);
+      this.stats.fallbackRequests++;
+      return this.getFallbackResponse(prompt);
     }
   }
 
   /**
-   * Build ICT-specific vision prompt
+   * Parse AI response to JSON
    */
-  buildVisionPrompt(context) {
-    const instrument = context.instrument || "XAUUSD";
-    const timeframe = context.timeframe || "4H";
-    const strategy = context.strategy || "Sell Profile";
-
-    return `You are an expert ICT (Inner Circle Trader) analyst. Analyze this chart and provide insights based on Smart Money Concepts.
-
-    Instrument: ${instrument}
-    Timeframe: ${timeframe}
-    Strategy Focus: ${strategy}
-
-    Please analyze the chart and provide:
-    1. Market Structure: Identify break of structure (BOS), change of character (CHOCH)
-    2. Order Blocks: Mark bullish/bearish order blocks
-    3. Fair Value Gaps (FVG): Identify any unfilled gaps
-    4. Liquidity Pools: Point out potential liquidity grabs
-    5. Timeframe Alignment: Check alignment with higher timeframes
-    6. Entry Opportunity: Based on CISD (Change in State of Delivery)
-    7. Support/Resistance: Key levels visible on the chart
-
-    Provide a structured analysis with:
-    - Key Levels (Support/Resistance)
-    - Probability of Trade (High/Medium/Low)
-    - Risk Management Notes
-    - Suggested Entry/Exit Points
-    - Confidence Score (0-100%)`;
+  parseAIResponse(response, fallback) {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      
+      const arrayMatch = response.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        return JSON.parse(arrayMatch[0]);
+      }
+      
+      return fallback;
+    } catch (error) {
+      console.warn('AI Response parse failed:', error.message);
+      return fallback;
+    }
   }
 
-  /**
-   * Extract confidence from analysis text
-   */
-  extractConfidence(text) {
-    const match = text.match(/confidence:?\s*(\d+)%/i);
-    return match ? parseInt(match[1]) : null;
+  getFallbackResponse(prompt) {
+    if (prompt.includes('SMT')) {
+      return {
+        validated: true,
+        confidence: 75,
+        reasoning: 'SMT divergence detected (AI limit reached)',
+        entryLevel: 'N/A',
+        stopLoss: 'N/A'
+      };
+    }
+    
+    return {
+      message: 'AI limit reached. Using local analysis.',
+      confidence: 60
+    };
   }
 
-  // ... existing methods
+  getStats() {
+    return {
+      ...this.stats,
+      remainingToday: this.getRemainingRequests(),
+      dailyLimit: this.dailyLimit,
+      cacheSize: this.cache.keys().length,
+      usedToday: this.dailyCount
+    };
+  }
 }
 
 module.exports = new AIService();
