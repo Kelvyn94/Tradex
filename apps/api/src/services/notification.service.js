@@ -1,22 +1,23 @@
 // Backend/src/services/notification.service.js
 // Using ntfy + Email (no Twilio)
 const axios = require("axios");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const User = require("../models/User");
+
+// Same reasoning as email.service.js: Render blocks/throttles outbound SMTP
+// to Gmail at the network level, so nodemailer could never deliver these
+// regardless of credentials. Resend's HTTP API isn't affected. Without a
+// verified sending domain, Resend only delivers to the email address the
+// Resend account itself was created with.
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "TRADEX <onboarding@resend.dev>";
 
 class NotificationService {
   constructor() {
     this.ntfyTopic = process.env.NTFY_TOPIC || "TRADEX_SIGNALS";
     this.frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      this.transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
+    if (process.env.RESEND_API_KEY) {
+      this.resend = new Resend(process.env.RESEND_API_KEY);
     }
   }
 
@@ -50,16 +51,17 @@ class NotificationService {
   async sendEmail(userId, signal) {
     try {
       const user = await User.findById(userId);
-      if (!user || !this.transporter) return { success: false };
+      if (!user || !this.resend) return { success: false };
 
       const html = this.formatEmailMessage(signal);
 
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_USER,
+      const { error } = await this.resend.emails.send({
+        from: FROM_EMAIL,
         to: user.email,
         subject: `📊 TRADEX Signal: ${signal.action} ${signal.instrument}`,
         html,
       });
+      if (error) throw new Error(error.message || "Resend API error");
 
       console.log(`✅ Email sent to ${user.email}`);
       return { success: true, method: "email" };
