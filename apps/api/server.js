@@ -74,7 +74,7 @@ app.get("/health", (req, res) => {
     services: {
       database: process.env.DATABASE_URL ? "connected" : "not configured",
       ai: process.env.GROQ_API_KEY ? "configured" : "not configured",
-      email: process.env.EMAIL_USER && process.env.EMAIL_PASS ? "configured" : "not configured",
+      email: process.env.RESEND_API_KEY ? "configured" : "not configured",
     },
   });
 });
