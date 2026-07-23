@@ -1,23 +1,27 @@
 import type { Metadata } from "next";
-import { Award, BarChart3, DollarSign, Percent, TrendingUp } from "lucide-react";
+import { Award, DollarSign, Percent, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { RefreshButton } from "@/components/analytics/refresh-button";
+import { EquityChart } from "@/components/dashboard/equity-chart";
+import { MonthlyPnlChart } from "@/components/analytics/monthly-pnl-chart";
+import { WidgetErrorBoundary } from "@/components/boundaries/widget-error-boundary";
 import { apiFetchJson } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
-import type { DashboardStats } from "@/lib/types";
+import type { DashboardData } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Analytics — TRADEX" };
 
-async function getStats(): Promise<DashboardStats | null> {
+async function getDashboardData(): Promise<DashboardData | null> {
   try {
-    return await apiFetchJson<DashboardStats>("/trades/stats");
+    return await apiFetchJson<DashboardData>("/analytics/dashboard");
   } catch {
     return null;
   }
 }
 
 export default async function AnalyticsPage() {
-  const stats = await getStats();
+  const data = await getDashboardData();
+  const stats = data?.stats;
 
   const statCards = [
     {
@@ -107,18 +111,24 @@ export default async function AnalyticsPage() {
         </div>
       )}
 
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="mb-4 text-sm font-semibold text-primary">Performance Overview</h3>
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-            <BarChart3 className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Advanced analytics coming soon!</p>
-            <p className="text-xs text-muted-foreground/70">
-              Track your performance with detailed charts and metrics.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Equity Curve</h3>
+            <WidgetErrorBoundary label="Equity Curve">
+              <EquityChart data={data?.equity ?? []} />
+            </WidgetErrorBoundary>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Monthly P&L</h3>
+            <WidgetErrorBoundary label="Monthly P&L">
+              <MonthlyPnlChart data={data?.monthly ?? []} />
+            </WidgetErrorBoundary>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
