@@ -51,6 +51,10 @@ apps/web/node_modules/
 apps/web/.env.local
 apps/web/.next/
 apps/web/next-env.d.ts
+*.tsbuildinfo
+
+# Stray shell crash dumps
+*.stackdump
 
 # Claude Code local tool settings (machine-specific, not project config)
 .claude/settings.local.json
