@@ -19,6 +19,27 @@ function normalizeTrade(row) {
   };
 }
 
+// Risk:Reward is only meaningful if the stop-loss/take-profit are actually
+// placed on the correct side of entry for the given direction (a Long's
+// stop must sit below entry and target above it; reversed for a Short).
+// Using Math.abs() alone on the raw distances — the previous logic —
+// produced a normal-looking ratio even when the levels were inverted for
+// the direction, silently masking a data-entry mistake instead of
+// surfacing it.
+function calculateRiskReward(direction, entry, stopLoss, takeProfit) {
+  if (!entry || !stopLoss || !takeProfit) return null;
+
+  const isConsistent =
+    direction === "Long"
+      ? stopLoss < entry && takeProfit > entry
+      : stopLoss > entry && takeProfit < entry;
+  if (!isConsistent) return null;
+
+  const risk = Math.abs(entry - stopLoss);
+  const reward = Math.abs(takeProfit - entry);
+  return risk === 0 ? null : reward / risk;
+}
+
 class Trade {
   static async create(tradeData) {
   const {
@@ -41,12 +62,7 @@ class Trade {
   const pnl_percentage = entry !== 0 ? (diff / entry) * 100 : 0;
 
   // Calculate Risk:Reward ratio
-  let risk_reward_ratio = null;
-  if (entry && stop_loss && take_profit) {
-    const risk = Math.abs(entry - stop_loss);
-    const reward = Math.abs(take_profit - entry);
-    risk_reward_ratio = risk === 0 ? null : reward / risk;
-  }
+  const risk_reward_ratio = calculateRiskReward(direction, entry, stop_loss, take_profit);
 
   const result = await pool.query(
     `INSERT INTO trades (
@@ -140,12 +156,7 @@ class Trade {
     const pnl_percentage = entry !== 0 ? (diff / entry) * 100 : 0;
 
     // Calculate Risk:Reward ratio
-    let risk_reward_ratio = null;
-    if (entry && stop_loss && take_profit) {
-      const risk = Math.abs(entry - stop_loss);
-      const reward = Math.abs(take_profit - entry);
-      risk_reward_ratio = risk === 0 ? null : reward / risk;
-    }
+    const risk_reward_ratio = calculateRiskReward(direction, entry, stop_loss, take_profit);
 
     const result = await pool.query(
       `UPDATE trades SET
