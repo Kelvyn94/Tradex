@@ -153,9 +153,13 @@ class MarketDataService extends EventEmitter {
     console.log("📡 Starting REST API polling as fallback...");
     this.fetchRestPrices();
 
+    // Twelve Data's free tier is 800 credits/day; 4 symbols every 30s is
+    // ~11,500 requests/day - over 14x the budget, which is exactly what
+    // exhausted the daily quota by early afternoon in production. 4
+    // symbols every 10 min is ~576/day, leaving real headroom.
     this.pollingInterval = setInterval(() => {
       this.fetchRestPrices();
-    }, 30000);
+    }, 600000);
   }
 
   /**
