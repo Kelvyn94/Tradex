@@ -29,6 +29,10 @@ A professional trading journal application built with React, Node.js, and Postgr
 - React Router for navigation
 - Lucide React icons
 
+Screenshot include:
+
+<img width="1358" height="577" alt="image" src="https://github.com/user-attachments/assets/2a2eb971-7eb1-4ed9-9d45-c75d83c5023f" />
+
 ## 📦 Installation
 
 ### Prerequisites
