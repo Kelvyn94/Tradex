@@ -78,12 +78,18 @@ exports.validateTrade = [
   body("size")
     .isFloat({ min: 0 })
     .withMessage("Position size must be a positive number"),
+  // express-validator's .optional() only skips validation when the field is
+  // undefined (missing) — the trade form sends an explicit null for a blank
+  // field, which still hit isFloat() and always failed. { nullable: true }
+  // also skips null; checkFalsy also skips "" and 0 (a stop/take price of
+  // exactly 0 isn't meaningful anyway, so treating it as "not provided" is
+  // harmless here).
   body("stopLoss")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isFloat({ min: 0 })
     .withMessage("Stop loss must be a positive number"),
   body("takeProfit")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isFloat({ min: 0 })
     .withMessage("Take profit must be a positive number"),
 ];
