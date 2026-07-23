@@ -1,4 +1,5 @@
 const { body, param } = require("express-validator");
+const dns = require("dns").promises;
 
 // Auth validation
 exports.validateRegister = [
@@ -12,7 +13,25 @@ exports.validateRegister = [
     .trim()
     .isEmail()
     .withMessage("Please enter a valid email")
-    .normalizeEmail(),
+    .normalizeEmail()
+    .custom(async (email) => {
+      // Free, no external service: confirms the domain actually has mail
+      // exchangers configured, catching typos and made-up domains
+      // (e.g. "gmial.com"). Can't confirm the specific mailbox exists
+      // without an SMTP-probing or paid verification service, but this
+      // catches the common case cheaply.
+      const domain = email.split("@")[1];
+      let records;
+      try {
+        records = await dns.resolveMx(domain);
+      } catch {
+        throw new Error("This email domain can't receive mail — check for a typo");
+      }
+      if (!records || records.length === 0) {
+        throw new Error("This email domain can't receive mail — check for a typo");
+      }
+      return true;
+    }),
   body("password")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters"),
