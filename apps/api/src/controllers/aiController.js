@@ -3,6 +3,7 @@
  */
 
 const aiService = require("../services/ai.service");
+const { buildMarketContext } = require("../services/marketContext.service");
 
 /**
  * Chat with AI Assistant
@@ -28,7 +29,8 @@ exports.chat = async (req, res) => {
       });
     }
 
-    const result = await aiService.getChatResponse(messages);
+    const marketContext = buildMarketContext();
+    const result = await aiService.getChatResponse(messages, marketContext);
 
     if (result.success) {
       return res.json({

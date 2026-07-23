@@ -14,8 +14,10 @@ const analyticsRoutes = require("./src/routes/analyticsRoutes");
 const aiRoutes = require("./src/routes/aiRoutes");
 const sentimentRoutes = require("./src/routes/sentimentRoutes");
 const dataEngineRoutes = require("./src/routes/dataEngineRoutes");
+const insightsRoutes = require("./src/routes/insightsRoutes");
 const MarketDataService = require("./src/services/marketData.service");
 const websocketService = require("./src/services/websocket.service");
+const { startDailyInsightCron } = require("./src/jobs/dailyInsightCron");
 
 const app = express();
 
@@ -118,6 +120,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/sentiment", sentimentRoutes);
 app.use("/api/data-engine", dataEngineRoutes);
+app.use("/api/insights", insightsRoutes);
 
 // Market Data Routes (direct)
 app.get("/api/market/prices", async (req, res) => {
@@ -145,6 +148,7 @@ app.get("/api/market/status", async (req, res) => {
 // Start Market Data Service
 MarketDataService.start();
 websocketService.connect();
+startDailyInsightCron();
 
 // ─── ERROR HANDLING ──────────────────────────────────────────────────────────
 
@@ -169,6 +173,7 @@ app.use((req, res) => {
       "GET /api/sentiment/:asset",
       "GET /api/data-engine/insights",
       "GET /api/data-engine/signals",
+      "GET /api/insights/daily",
     ],
   });
 });

@@ -12,6 +12,13 @@ export interface User {
   updated_at?: string;
 }
 
+export interface DailyDigest {
+  id: number;
+  digest_date: string;
+  content: string;
+  created_at: string;
+}
+
 export interface Trade {
   id: number;
   user_id: number;
