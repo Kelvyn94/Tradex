@@ -51,6 +51,7 @@ class EmailService {
           `,
         ),
       });
+      console.log(`✅ Verification email sent to ${user.email}`);
       return { success: true };
     } catch (error) {
       console.error("❌ Verification email error:", error.message);
@@ -81,6 +82,7 @@ class EmailService {
           `,
         ),
       });
+      console.log(`✅ Password reset email sent to ${user.email}`);
       return { success: true };
     } catch (error) {
       console.error("❌ Password reset email error:", error.message);
