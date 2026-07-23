@@ -17,6 +17,7 @@ const dataEngineRoutes = require("./src/routes/dataEngineRoutes");
 const insightsRoutes = require("./src/routes/insightsRoutes");
 const MarketDataService = require("./src/services/marketData.service");
 const websocketService = require("./src/services/websocket.service");
+const dataEngineService = require("./src/services/dataEngine.service");
 const { startDailyInsightCron } = require("./src/jobs/dailyInsightCron");
 
 const app = express();
@@ -148,6 +149,7 @@ app.get("/api/market/status", async (req, res) => {
 // Start Market Data Service
 MarketDataService.start();
 websocketService.connect();
+dataEngineService.startKeepAlive();
 startDailyInsightCron();
 
 // ─── ERROR HANDLING ──────────────────────────────────────────────────────────
@@ -207,5 +209,6 @@ process.on("SIGTERM", () => {
   console.log("🛑 Shutting down...");
   MarketDataService.stop();
   websocketService.stop();
+  dataEngineService.stopKeepAlive();
   process.exit(0);
 });

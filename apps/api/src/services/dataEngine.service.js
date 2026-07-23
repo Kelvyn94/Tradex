@@ -12,8 +12,34 @@ class DataEngineService {
   constructor() {
     this.client = axios.create({
       baseURL: DATA_ENGINE_URL,
-      timeout: 5000,
+      // Render free tier spins the Data Engine down after ~15 min idle and
+      // takes up to ~50s to wake on the next request. 15s covers a slow-but-
+      // warm response; true cold starts still fail once, which is why
+      // startKeepAlive() below pings it regularly to avoid full sleep.
+      timeout: 15000,
     });
+    this.keepAliveInterval = null;
+  }
+
+  // Pings the Data Engine's health endpoint periodically so it stays warm
+  // between real user requests instead of spinning down and forcing the
+  // next caller to eat a ~50s cold-start penalty.
+  startKeepAlive(intervalMs = 600000) {
+    const ping = () => {
+      this.client.get("/health").catch(() => {
+        // Expected while the instance is asleep and waking up; the next
+        // scheduled ping (or a real request) will succeed once it's up.
+      });
+    };
+    ping();
+    this.keepAliveInterval = setInterval(ping, intervalMs);
+  }
+
+  stopKeepAlive() {
+    if (this.keepAliveInterval) {
+      clearInterval(this.keepAliveInterval);
+      this.keepAliveInterval = null;
+    }
   }
 
   // Get AI Insights
