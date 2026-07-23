@@ -8,30 +8,17 @@ class FCSApiService {
     this.lastFetch = null;
     this.lastFetchTime = null;
     this.cacheTTL = 3600000; // 1 hour cache
-    
-    // Trading hours: 18:00 PM - 00:00 AM NY time
-    this.tradingStartHour = 18; // 6 PM NY time
-    this.tradingEndHour = 0; // 12 AM NY time (midnight)
-  }
-
-  isTradingHours() {
-    const now = new Date();
-    const nyTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const hour = nyTime.getHours();
-    return (hour >= this.tradingStartHour || hour === 0);
   }
 
   async fetchSilverPrice() {
-    // ✅ Check cache first (1 hour TTL)
+    // The 1-hour cache TTL is what actually limits API call volume — an
+    // earlier "only fetch 18:00-00:00 NY" gate on top of this returned null
+    // for 18 of 24 hours whenever the cache was empty (e.g. right after a
+    // deploy restart, since priceCache resets), which is why SMT auto-scan
+    // kept reporting no silver data outside that narrow window.
     const now = Date.now();
     if (this.lastFetchTime && (now - this.lastFetchTime) < this.cacheTTL) {
       console.log('⏰ Silver price cached (1 hour TTL)');
-      return this.priceCache['XAG/USD'] || null;
-    }
-
-    // Only fetch during trading hours
-    if (!this.isTradingHours()) {
-      console.log('⏰ Outside trading hours (18:00-00:00 NY time). Using cached price.');
       return this.priceCache['XAG/USD'] || null;
     }
 

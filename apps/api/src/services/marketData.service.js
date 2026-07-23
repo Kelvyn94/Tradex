@@ -204,9 +204,20 @@ class MarketDataService extends EventEmitter {
             timestamp: new Date().toISOString(),
           };
           console.log(`💰 REST: ${apiSymbol} @ ${response.data.price}`);
+        } else {
+          // Twelve Data returns 200 with an error payload (e.g. quota
+          // exhausted, invalid symbol) rather than a non-2xx status.
+          console.warn(
+            `⚠️ Twelve Data returned no price for ${apiSymbol}:`,
+            response.data?.message || JSON.stringify(response.data),
+          );
         }
       } catch (error) {
-        // Silent fail for individual symbols
+        console.warn(
+          `⚠️ Twelve Data request failed for ${apiSymbol}:`,
+          error.response?.status,
+          error.response?.data?.message || error.message,
+        );
       }
     }
     return prices;

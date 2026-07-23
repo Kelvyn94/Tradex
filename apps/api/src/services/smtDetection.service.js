@@ -57,6 +57,17 @@ class SMTDetectionService {
     // Get real-time prices from WebSocket
     const prices = WebSocketService.getAllPrices();
 
+    // Record whatever current prices we have exactly once per symbol per
+    // scan tick, so history can actually accumulate over time. This must
+    // happen before checkDataAvailability — detection was previously gated
+    // behind history that could only ever be built by the code path the
+    // gate itself blocked (updatePriceHistory lived inside the per-signal
+    // detection loop below, which never ran until the gate passed).
+    for (const symbol of [group.primary, ...group.correlated]) {
+      const price = prices[symbol]?.price;
+      if (price) this.updatePriceHistory(symbol, price);
+    }
+
     // Check if we have enough price history
     const hasEnoughData = this.checkDataAvailability(prices, group);
     if (!hasEnoughData) {
@@ -189,9 +200,11 @@ class SMTDetectionService {
       return null;
     }
 
-    // Update price history
-    this.updatePriceHistory(primary, primaryPrice);
-    this.updatePriceHistory(correlated, correlatedPrice);
+    // History is recorded once per symbol per scan tick in
+    // detectRealTimeSMT, not here — this runs once per (correlated,
+    // timeframe) pair, up to 15x per tick for the gold group, which
+    // would otherwise push the same current price into history
+    // repeatedly and corrupt getPreviousPrice with same-tick duplicates.
 
     // Get previous prices for trend detection
     const primaryPrev = this.getPreviousPrice(primary, 1);
