@@ -1,5 +1,24 @@
 const pool = require("../config/database");
 
+// pg returns DECIMAL columns as strings (to avoid float precision loss),
+// but every consumer of these rows (frontend, aggregation code) expects
+// real numbers. Normalize once here instead of at each call site.
+function normalizeTrade(row) {
+  if (!row) return row;
+  return {
+    ...row,
+    entry: parseFloat(row.entry),
+    exit: parseFloat(row.exit),
+    size: parseFloat(row.size),
+    stop_loss: row.stop_loss !== null ? parseFloat(row.stop_loss) : null,
+    take_profit: row.take_profit !== null ? parseFloat(row.take_profit) : null,
+    pnl: parseFloat(row.pnl) || 0,
+    pnl_percentage: parseFloat(row.pnl_percentage) || 0,
+    risk_reward_ratio:
+      row.risk_reward_ratio !== null ? parseFloat(row.risk_reward_ratio) : null,
+  };
+}
+
 class Trade {
   static async create(tradeData) {
   const {
@@ -42,7 +61,7 @@ class Trade {
       tags, notes
     ]
   );
-  return result.rows[0];
+  return normalizeTrade(result.rows[0]);
 }
 
   // ... rest of the methods remain the same
@@ -79,7 +98,7 @@ class Trade {
 
     query += " ORDER BY date DESC";
     const result = await pool.query(query, params);
-    let trades = result.rows;
+    let trades = result.rows.map(normalizeTrade);
 
     // Filter by outcome if specified
     if (filters.outcome === "win") {
@@ -97,7 +116,7 @@ class Trade {
       "SELECT * FROM trades WHERE id = $1 AND user_id = $2",
       [id, userId],
     );
-    return result.rows[0] || null;
+    return normalizeTrade(result.rows[0]) || null;
   }
 
   // Update trade
@@ -154,7 +173,7 @@ class Trade {
         userId,
       ],
     );
-    return result.rows[0] || null;
+    return normalizeTrade(result.rows[0]) || null;
   }
 
   // Delete trade
