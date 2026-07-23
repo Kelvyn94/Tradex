@@ -8,6 +8,7 @@ const compression = require("compression");
 require("dotenv").config();
 
 const pool = require("./src/config/database");
+const ensureAuthColumns = require("./src/config/ensureAuthColumns");
 const authRoutes = require("./src/routes/authRoutes");
 const tradeRoutes = require("./src/routes/tradeRoutes");
 const analyticsRoutes = require("./src/routes/analyticsRoutes");
@@ -146,6 +147,10 @@ app.get("/api/market/status", async (req, res) => {
   }
 });
 
+ensureAuthColumns().catch((err) =>
+  console.error("❌ Failed to ensure auth columns:", err.message),
+);
+
 // Start Market Data Service
 MarketDataService.start();
 websocketService.connect();
@@ -166,6 +171,10 @@ app.use((req, res) => {
       "POST /api/auth/login",
       "POST /api/auth/register",
       "GET /api/auth/me",
+      "POST /api/auth/verify-email",
+      "POST /api/auth/forgot-password",
+      "POST /api/auth/reset-password",
+      "POST /api/auth/resend-verification",
       "GET /api/trades",
       "POST /api/trades",
       "GET /api/analytics",

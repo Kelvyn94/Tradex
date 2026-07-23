@@ -23,6 +23,17 @@ exports.validateLogin = [
   body("password").notEmpty().withMessage("Password is required"),
 ];
 
+exports.validateForgotPassword = [
+  body("email").trim().isEmail().withMessage("Please enter a valid email").normalizeEmail(),
+];
+
+exports.validateResetPassword = [
+  body("token").notEmpty().withMessage("Reset token is required"),
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters"),
+];
+
 // Trade validation
 exports.validateTrade = [
   body("date")

@@ -1,7 +1,58 @@
 const pool = require("../config/database");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 class User {
+  // Tokens are emailed to the user in raw form but only ever stored here as
+  // a SHA-256 hash, so a DB leak alone can't be used to verify an email or
+  // reset a password.
+  static hashToken(token) {
+    return crypto.createHash("sha256").update(token).digest("hex");
+  }
+
+  static async setVerificationToken(userId, tokenHash, expiresAt) {
+    await pool.query(
+      "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE id = $3",
+      [tokenHash, expiresAt, userId],
+    );
+  }
+
+  static async findByVerificationToken(tokenHash) {
+    const result = await pool.query(
+      "SELECT id, username, email FROM users WHERE verification_token = $1 AND verification_token_expires > NOW()",
+      [tokenHash],
+    );
+    return result.rows[0] || null;
+  }
+
+  static async markEmailVerified(userId) {
+    await pool.query(
+      "UPDATE users SET email_verified = true, verification_token = NULL, verification_token_expires = NULL WHERE id = $1",
+      [userId],
+    );
+  }
+
+  static async setResetToken(userId, tokenHash, expiresAt) {
+    await pool.query(
+      "UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3",
+      [tokenHash, expiresAt, userId],
+    );
+  }
+
+  static async findByResetToken(tokenHash) {
+    const result = await pool.query(
+      "SELECT id, username, email FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()",
+      [tokenHash],
+    );
+    return result.rows[0] || null;
+  }
+
+  static async resetPassword(userId, newHashedPassword) {
+    await pool.query(
+      "UPDATE users SET password = $1, reset_token = NULL, reset_token_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+      [newHashedPassword, userId],
+    );
+  }
   // Find user by ID
   static async findById(id) {
     const result = await pool.query(
