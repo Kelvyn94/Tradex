@@ -1,632 +1,277 @@
-// frontend/src/pages/AIAssistant.jsx
-import React, { useState, useEffect, useRef } from "react";
+// pages/AIAssistant.jsx
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Brain,
-  Bell,
+  Send,
+  Bot,
+  User,
+  Loader2,
+  Trash2,
   Clock,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
-  CheckCircle,
-  Zap,
-  Activity,
-  DollarSign,
-  RefreshCw,
-  Upload,
-  X,
-  Image,
-  BarChart3,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import api from "../api/client";
-import toast from "react-hot-toast";
 
-const AIAssistant = () => {
+export default function AIAssistant() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [signals, setSignals] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
-  const [prices, setPrices] = useState({});
-  const [marketStatus, setMarketStatus] = useState(null);
-  const [selectedGroup, setSelectedGroup] = useState("gold");
-  const [assetGroups] = useState(["gold", "forex", "indices"]);
-  const [autoScanEnabled, setAutoScanEnabled] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
-  const [screenshot, setScreenshot] = useState(null);
-  const [screenshotPreview, setScreenshotPreview] = useState(null);
-  const [screenshotAnalysis, setScreenshotAnalysis] = useState(null);
-  const [analyzingScreenshot, setAnalyzingScreenshot] = useState(false);
-  const fileInputRef = useRef(null);
-
+  // Load messages from localStorage
   useEffect(() => {
-    fetchMarketData();
-    const priceInterval = setInterval(fetchMarketData, 30000);
-    return () => clearInterval(priceInterval);
+    const savedMessages = localStorage.getItem("ai_chat_history");
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        if (parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      } catch (e) {
+        console.error("Error loading chat history:", e);
+      }
+    }
+    // Default welcome message
+    setMessages([
+      {
+        role: "assistant",
+        content:
+          "👋 Hello! I'm your AI trading assistant powered by Groq. How can I help you today?",
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, []);
+
+  // Save messages to localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(
+        "ai_chat_history",
+        JSON.stringify(messages.slice(-100)),
+      );
+    }
+  }, [messages]);
+
+  // Scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(() => {
-    if (autoScanEnabled) {
-      const autoScanInterval = setInterval(() => {
-        runDetection(true);
-      }, 300000);
-      return () => clearInterval(autoScanInterval);
-    }
-  }, [autoScanEnabled, selectedGroup]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
-  const fetchMarketData = async () => {
-    try {
-      const [pricesRes, statusRes] = await Promise.all([
-        api.get("/ai/prices"),
-        api.get("/ai/market-status"),
-      ]);
-      setPrices(pricesRes.data.prices || {});
-      setMarketStatus(statusRes.data.status);
-    } catch (error) {
-      console.error("Market data fetch error:", error);
-    }
-  };
+  // Send message
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
 
-  const runDetection = async (isAuto = false) => {
-    if (!isAuto) setLoading(true);
-    try {
-      const response = await api.post("/ai/detect-smt", {
-        groupName: selectedGroup,
-      });
-
-      if (response.data.success) {
-        setSignals(response.data.signals || []);
-        setRecommendations(response.data.recommendations || []);
-        if (!isAuto && response.data.totalSignals > 0) {
-          toast.success(`Found ${response.data.totalSignals} SMT signals`);
-        }
-      }
-    } catch (error) {
-      if (!isAuto) toast.error("Detection failed");
-    } finally {
-      if (!isAuto) setLoading(false);
-    }
-  };
-
-  const testNotification = async () => {
-    try {
-      await api.post("/ai/test-notification");
-      toast.success("📱 Test notification sent! Check your phone.");
-    } catch (error) {
-      toast.error("Failed to send test notification");
-    }
-  };
-
-  const handleScreenshotUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result.split(",")[1];
-      setScreenshot(base64);
-      setScreenshotPreview(reader.result);
-      toast.success('Chart image uploaded! Click "Analyze Chart"');
+    const userMessage = {
+      role: "user",
+      content: input,
+      timestamp: new Date().toISOString(),
     };
-    reader.readAsDataURL(file);
-  };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setLoading(true);
 
-  const handleAnalyzeScreenshot = async () => {
-    if (!screenshot) {
-      toast.error("Please upload a chart screenshot first");
-      return;
-    }
-
-    setAnalyzingScreenshot(true);
     try {
-      const response = await api.post("/ai/analyze-screenshot", {
-        image: screenshot,
-        context: {
-          instrument: "XAUUSD",
-          timeframe: "4H",
-        },
+      const response = await api.post("/ai/chat", {
+        messages: [...messages, userMessage],
       });
-
-      if (response.data.success) {
-        setScreenshotAnalysis(response.data.analysis);
-        toast.success("Chart analysis complete!");
+      const data = response.data;
+      if (data.success) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.response,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "❌ Error: " + data.error,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to analyze chart");
-    } finally {
-      setAnalyzingScreenshot(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "❌ Error: " + error.message,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     }
+    setLoading(false);
   };
 
-  const clearScreenshot = () => {
-    setScreenshot(null);
-    setScreenshotPreview(null);
-    setScreenshotAnalysis(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  // Clear history
+  const clearHistory = useCallback(() => {
+    if (window.confirm("Clear all chat history?")) {
+      localStorage.removeItem("ai_chat_history");
+      setMessages([
+        {
+          role: "assistant",
+          content: "🗑️ Chat history cleared. How can I help you?",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     }
-  };
+  }, []);
 
-  const renderAnalysis = () => {
-    if (!screenshotAnalysis) return null;
-
-    const analysisData = screenshotAnalysis.analysis || screenshotAnalysis;
-    const isStructured =
-      typeof analysisData === "object" && !Array.isArray(analysisData);
-
-    return (
-      <div className="mt-4 p-4 bg-dark-900 rounded-lg border border-dark-700">
-        <h4 className="text-sm font-medium text-accent mb-3">
-          📊 Chart Analysis
-        </h4>
-
-        {isStructured ? (
-          <div className="space-y-3">
-            {analysisData.levels && analysisData.levels.length > 0 && (
-              <div className="p-3 bg-dark-800 rounded-lg">
-                <h5 className="text-xs text-gray-400 font-medium mb-2">
-                  🔑 Key Levels
-                </h5>
-                <div className="flex flex-wrap gap-2">
-                  {analysisData.levels.map((level, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-1 bg-dark-700 rounded text-xs text-white border border-dark-600"
-                    >
-                      {level}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {(analysisData.entry ||
-              analysisData.stopLoss ||
-              analysisData.takeProfit) && (
-              <div className="p-3 bg-dark-800 rounded-lg">
-                <h5 className="text-xs text-gray-400 font-medium mb-2">
-                  🎯 Trade Setup
-                </h5>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {analysisData.entry && (
-                    <div>
-                      <span className="text-xs text-gray-500">Entry</span>
-                      <p className="text-sm text-white font-mono">
-                        {analysisData.entry}
-                      </p>
-                    </div>
-                  )}
-                  {analysisData.stopLoss && (
-                    <div>
-                      <span className="text-xs text-gray-500">Stop Loss</span>
-                      <p className="text-sm text-danger font-mono">
-                        {analysisData.stopLoss}
-                      </p>
-                    </div>
-                  )}
-                  {analysisData.takeProfit && (
-                    <div>
-                      <span className="text-xs text-gray-500">Take Profit</span>
-                      <p className="text-sm text-success font-mono">
-                        {analysisData.takeProfit}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {(analysisData.risk ||
-              analysisData.confidence ||
-              screenshotAnalysis.confidence) && (
-              <div className="p-3 bg-dark-800 rounded-lg">
-                <h5 className="text-xs text-gray-400 font-medium mb-2">
-                  ⚖️ Risk Assessment
-                </h5>
-                <div className="flex flex-wrap items-center gap-4">
-                  {analysisData.risk && (
-                    <span
-                      className={`text-sm font-medium px-2 py-1 rounded ${
-                        analysisData.risk.toLowerCase() === "low"
-                          ? "bg-success/20 text-success"
-                          : analysisData.risk.toLowerCase() === "medium"
-                            ? "bg-warning/20 text-warning"
-                            : "bg-danger/20 text-danger"
-                      }`}
-                    >
-                      Risk: {analysisData.risk}
-                    </span>
-                  )}
-                  {(analysisData.confidence ||
-                    screenshotAnalysis.confidence) && (
-                    <span className="text-sm text-gray-300">
-                      Confidence:{" "}
-                      <span className="text-accent font-bold">
-                        {analysisData.confidence ||
-                          screenshotAnalysis.confidence}
-                        %
-                      </span>
-                    </span>
-                  )}
-                  {analysisData.probability && (
-                    <span className="text-sm text-gray-300">
-                      Probability:{" "}
-                      <span className="text-white font-medium">
-                        {analysisData.probability}
-                      </span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {analysisData.analysisText && (
-              <div className="p-3 bg-dark-800 rounded-lg">
-                <h5 className="text-xs text-gray-400 font-medium mb-2">
-                  📝 Analysis
-                </h5>
-                <p className="text-sm text-gray-300 whitespace-pre-wrap">
-                  {analysisData.analysisText}
-                </p>
-              </div>
-            )}
-
-            {analysisData.reasoning && (
-              <div className="p-3 bg-dark-800 rounded-lg">
-                <h5 className="text-xs text-gray-400 font-medium mb-2">
-                  💡 Reasoning
-                </h5>
-                <p className="text-sm text-gray-300">
-                  {analysisData.reasoning}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="p-3 bg-dark-800 rounded-lg">
-            <p className="text-sm text-gray-300 whitespace-pre-wrap">
-              {typeof analysisData === "string"
-                ? analysisData
-                : JSON.stringify(analysisData, null, 2)}
-            </p>
-          </div>
-        )}
-
-        {screenshotAnalysis.timestamp && (
-          <div className="mt-2 text-xs text-gray-500 text-right">
-            Analyzed: {new Date(screenshotAnalysis.timestamp).toLocaleString()}
-          </div>
-        )}
-      </div>
-    );
-  };
+  // Quick suggestions
+  const quickSuggestions = [
+    "Analyze EURUSD price action",
+    "Explain ICT concepts",
+    "What's the market sentiment?",
+    "Show me SMT divergence",
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-[calc(100vh-180px)]">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Brain className="w-6 h-6 text-accent" />
+            <Bot className="w-6 h-6 text-blue-400" />
             AI Trading Assistant
           </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Real-time SMT detection, chart analysis, and trade recommendations
+          <p className="text-gray-400 text-sm">
+            Powered by Groq AI • Llama 3.3 70B
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <button
-            onClick={testNotification}
-            className="btn-outline flex items-center gap-2 text-sm"
+            onClick={clearHistory}
+            className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+            title="Clear history"
           >
-            <Bell className="w-4 h-4" />
-            Test Alert
+            <Trash2 size={16} />
           </button>
           <button
-            onClick={() => runDetection(false)}
-            disabled={loading}
-            className="btn-primary flex items-center gap-2 text-sm"
+            onClick={() => setShowHistory(!showHistory)}
+            className="p-2 rounded-lg border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200"
           >
-            {loading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Zap className="w-4 h-4" />
-            )}
-            {loading ? "Scanning..." : "Scan Now"}
+            {showHistory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
+          <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-sm border border-green-500/20">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            Online
+          </span>
         </div>
       </div>
 
-      <div className="card">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-300">Asset Group:</span>
-            {assetGroups.map((group) => (
-              <button
-                key={group}
-                onClick={() => setSelectedGroup(group)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
-                  selectedGroup === group
-                    ? "bg-accent text-dark-900"
-                    : "bg-dark-700 text-gray-400 hover:text-white"
-                }`}
-              >
-                {group.charAt(0).toUpperCase() + group.slice(1)}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-gray-300">Auto-Scan:</span>
-            <button
-              onClick={() => setAutoScanEnabled(!autoScanEnabled)}
-              className={`w-10 h-5 rounded-full transition-colors ${
-                autoScanEnabled ? "bg-accent" : "bg-dark-600"
-              }`}
-            >
-              <div
-                className={`w-4 h-4 bg-white rounded-full transition-transform ${
-                  autoScanEnabled ? "translate-x-5" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-            <span className="text-xs text-gray-500">
-              {autoScanEnabled ? "Every 5 min" : "Manual"}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="card border border-accent/30">
-        <h3 className="text-sm font-cond text-accent tracking-wider mb-3 flex items-center gap-2">
-          <Image className="w-4 h-4" />
-          Chart Screenshot Analysis
-        </h3>
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="btn-outline flex items-center gap-2 text-sm"
-              >
-                <Upload className="w-4 h-4" />
-                Upload Chart
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleScreenshotUpload}
-                accept="image/*"
-                className="hidden"
-              />
-              {screenshotPreview && (
-                <button
-                  onClick={clearScreenshot}
-                  className="text-danger hover:text-danger/80 text-sm"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-              {screenshotPreview && (
-                <span className="text-xs text-success">✅ Image uploaded</span>
-              )}
-            </div>
-            {screenshotPreview && (
-              <div className="mt-2">
-                <img
-                  src={screenshotPreview}
-                  alt="Chart"
-                  className="max-h-48 rounded-lg border border-dark-700"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 Take screenshot from TradingView
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={handleAnalyzeScreenshot}
-              disabled={!screenshot || analyzingScreenshot}
-              className="btn-primary flex items-center gap-2 text-sm disabled:opacity-50"
-            >
-              {analyzingScreenshot ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Brain className="w-4 h-4" />
-              )}
-              {analyzingScreenshot ? "Analyzing..." : "Analyze Chart"}
-            </button>
-          </div>
-        </div>
-
-        {renderAnalysis()}
-      </div>
-
-      <div className="card">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-success" />
-            <div>
-              <div className="text-xs text-gray-500">WebSocket</div>
-              <div className="text-sm font-medium text-success">
-                {marketStatus?.connected ? "Connected" : "Disconnected"}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Clock className="w-5 h-5 text-accent" />
-            <div>
-              <div className="text-xs text-gray-500">Last Update</div>
-              <div className="text-sm font-medium text-white">
-                {marketStatus?.lastUpdate
-                  ? new Date(marketStatus.lastUpdate).toLocaleTimeString()
-                  : "Never"}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <DollarSign className="w-5 h-5 text-warning" />
-            <div>
-              <div className="text-xs text-gray-500">Active Symbols</div>
-              <div className="text-sm font-medium text-white">
-                {marketStatus?.activeSymbols || 0}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <BarChart3 className="w-5 h-5 text-accent" />
-            <div>
-              <div className="text-xs text-gray-500">Auto-Scan</div>
-              <div className="text-sm font-medium text-success">
-                {autoScanEnabled ? "Active" : "Off"}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 className="text-sm font-cond text-accent tracking-wider mb-3 flex items-center gap-2">
-          <DollarSign className="w-4 h-4" />
-          Live Prices
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Object.entries(prices)
-            .slice(0, 8)
-            .map(([symbol, data]) => (
-              <div
-                key={symbol}
-                className="bg-dark-900 p-3 rounded-lg border border-dark-700"
-              >
-                <div className="text-xs text-gray-500">{symbol}</div>
-                <div className="text-sm font-mono text-white">
-                  {data.price ? Number(data.price).toFixed(4) : "---"}
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {data.source || "Live"}
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-
-      {signals.length > 0 && (
-        <div className="card">
-          <h3 className="text-sm font-cond text-accent tracking-wider mb-3 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            SMT Divergence Signals ({signals.length})
-          </h3>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {signals.map((signal, index) => (
+      {/* Messages Area */}
+      <div className="flex-1 overflow-hidden bg-dark-800/30 rounded-2xl border border-dark-700">
+        <div className="h-full flex flex-col">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((msg, index) => (
               <div
                 key={index}
-                className="p-3 bg-dark-900 rounded-lg border border-dark-700"
+                className={`flex items-start gap-3 animate-slide-up ${
+                  msg.role === "user" ? "flex-row-reverse" : ""
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {signal.type === "BULLISH" ? (
-                      <TrendingUp className="w-5 h-5 text-success" />
-                    ) : (
-                      <TrendingDown className="w-5 h-5 text-danger" />
-                    )}
-                    <div>
-                      <div className="font-medium text-white">
-                        {signal.type} SMT Divergence ({signal.timeframe})
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {signal.primaryAsset} vs {signal.correlatedAsset}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                      Confidence: {signal.confidence}%
-                    </span>
-                    {signal.timeframeAlignment?.aligned && (
-                      <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded">
-                        ✅{" "}
-                        {signal.timeframeAlignment.higherTimeframe ||
-                          signal.timeframeAlignment.lowerTimeframe}{" "}
-                        aligned
-                      </span>
-                    )}
-                  </div>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    msg.role === "user" ? "bg-blue-500/20" : "bg-cyan-500/20"
+                  }`}
+                >
+                  {msg.role === "user" ? (
+                    <User size={16} className="text-blue-400" />
+                  ) : (
+                    <Bot size={16} className="text-cyan-400" />
+                  )}
                 </div>
-                <p className="text-sm text-gray-300 mt-2">
-                  {signal.description}
-                </p>
-                <div className="mt-2 flex gap-4 text-xs text-gray-500">
-                  <span>Entry: {signal.primaryPrice}</span>
-                  <span>Correlated: {signal.correlatedPrice}</span>
-                  <span>Group: {signal.group}</span>
+                <div
+                  className={`max-w-[85%] p-4 rounded-2xl ${
+                    msg.role === "user"
+                      ? "bg-blue-500/20 border border-blue-500/20"
+                      : "glass-light"
+                  }`}
+                >
+                  <div className="text-sm text-white whitespace-pre-wrap">
+                    {msg.content}
+                  </div>
+                  {msg.timestamp && (
+                    <div className="mt-1 text-[10px] text-gray-500">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="flex items-center gap-3 animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <Loader2 size={16} className="text-cyan-400 animate-spin" />
+                </div>
+                <div className="glass-light p-4 rounded-2xl">
+                  <div className="text-sm text-gray-400">
+                    Analyzing market data...
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick Suggestions */}
+          <div className="px-4 py-2 border-t border-dark-700">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {quickSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => {
+                    setInput(suggestion);
+                    setTimeout(() => sendMessage(), 100);
+                  }}
+                  className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200 whitespace-nowrap"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Input */}
+          <div className="p-4 border-t border-dark-700 bg-dark-900/30">
+            <div className="flex gap-3">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                placeholder="Ask about market analysis, ICT concepts, or trading strategies..."
+                className="input-premium flex-1 transition-all duration-200 focus:border-blue-500"
+                disabled={loading}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={loading || !input.trim()}
+                className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
+              >
+                <Send size={18} />
+                Send
+              </button>
+            </div>
+            <div className="mt-2 text-center text-[10px] text-gray-500">
+              <span>🔒 Private & secure • Powered by Groq AI</span>
+            </div>
           </div>
         </div>
-      )}
-
-      {recommendations.length > 0 && (
-        <div className="card border-2 border-accent/30">
-          <h3 className="text-sm font-cond text-accent tracking-wider mb-3 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />
-            Trade Recommendations
-          </h3>
-          {recommendations.map((rec, index) => (
-            <div
-              key={index}
-              className="p-4 bg-dark-900 rounded-lg mb-3 last:mb-0"
-            >
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <div className="text-xs text-gray-500">Action</div>
-                  <div
-                    className={`text-lg font-bold ${rec.action === "BUY" ? "text-success" : "text-danger"}`}
-                  >
-                    {rec.action} {rec.instrument}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Entry</div>
-                  <div className="text-lg font-mono text-white">
-                    {rec.entry}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Stop Loss</div>
-                  <div className="text-lg font-mono text-danger">
-                    {rec.stopLoss}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Confidence</div>
-                  <div className="text-lg font-mono text-accent">
-                    {rec.confidence}%
-                  </div>
-                </div>
-              </div>
-              <div className="mt-2 flex gap-4 text-xs text-gray-500">
-                <span>Timeframe: {rec.timeframe}</span>
-                <span>R:R: {rec.riskReward}:1</span>
-                <span>Correlated: {rec.correlated}</span>
-              </div>
-              <div className="mt-2 p-2 bg-dark-800 rounded">
-                <p className="text-sm text-gray-300">{rec.reasoning}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {signals.length === 0 && !loading && (
-        <div className="text-center py-12 text-gray-500">
-          <div className="text-4xl mb-4">🤖</div>
-          <p className="text-lg font-medium">No SMT signals detected</p>
-          <p className="text-sm">
-            {autoScanEnabled
-              ? "Auto-scan is running every 5 minutes. You will be notified when signals appear."
-              : 'Click "Scan Now" to check for divergences'}
-          </p>
-        </div>
-      )}
+      </div>
     </div>
   );
-};
-
-export default AIAssistant;
+}

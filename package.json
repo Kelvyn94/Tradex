@@ -1,0 +1,8 @@
+{
+  "name": "tradex-root",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

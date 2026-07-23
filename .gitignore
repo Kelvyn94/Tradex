@@ -15,6 +15,8 @@ yarn-error.log*
 # Build
 dist/
 build/
+.next/
+out/
 .DS_Store
 
 # IDE
@@ -39,12 +41,21 @@ npm-debug.log*
 Thumbs.db
 .DS_Store
 
-# Backend specific
-Backend/node_modules/
-Backend/.env
-Backend/package-lock.json
+# apps/api (Express backend, formerly Backend/)
+apps/api/node_modules/
+apps/api/.env
+apps/api/package-lock.json
 
-# Frontend specific
+# apps/web (Next.js frontend)
+apps/web/node_modules/
+apps/web/.env.local
+apps/web/.next/
+apps/web/next-env.d.ts
+
+# Claude Code local tool settings (machine-specific, not project config)
+.claude/settings.local.json
+
+# Legacy frontend/ (pre-migration, still present during Phase 1-2)
 frontend/node_modules/
 frontend/.env
 frontend/package-lock.json

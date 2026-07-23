@@ -1,259 +1,131 @@
-// Add to imports
+// pages/Dashboard.jsx
+import React, { useState, useEffect } from "react";
 import {
-  DollarSign,
+  Activity,
   TrendingUp,
   TrendingDown,
-  Award,
-  Percent,
-  Activity,
-  Zap,
+  DollarSign,
+  BarChart3,
 } from "lucide-react";
-import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import api from "../api/client";
-import toast from "react-hot-toast";
+import StatsCard from "../components/dashboard/StatsCard";
+import EquityChart from "../components/dashboard/EquityChart";
+import RecentTrades from "../components/dashboard/RecentTrades";
+import SentimentWidget from "../components/dashboard/SentimentWidget";
 
-const Dashboard = () => {
+export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
+  const [equity, setEquity] = useState([]);
+  const [recentTrades, setRecentTrades] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [livePrices, setLivePrices] = useState({});
-  const [wsStatus, setWsStatus] = useState("connecting");
-  const [smtSignals, setSmtSignals] = useState([]);
 
   useEffect(() => {
-    fetchDashboardData();
-    fetchLivePrices();
-
-    const priceInterval = setInterval(fetchLivePrices, 30000);
-    const statusInterval = setInterval(checkWebSocketStatus, 10000);
-
-    return () => {
-      clearInterval(priceInterval);
-      clearInterval(statusInterval);
+    const fetchDashboard = async () => {
+      try {
+        const response = await api.get("/analytics/dashboard");
+        setStats(response.data.stats);
+        setEquity(response.data.equity || []);
+        setRecentTrades(response.data.recentTrades || []);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchDashboard();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [statsRes, smtRes] = await Promise.all([
-        api.get("/trades/stats"),
-        api.post("/ai/detect-smt", { groupName: "gold" }),
-      ]);
-
-      setStats(statsRes.data);
-      if (smtRes.data.success && smtRes.data.signals?.length > 0) {
-        setSmtSignals(smtRes.data.signals.slice(0, 3));
-      }
-    } catch (error) {
-      toast.error("Failed to load dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchLivePrices = async () => {
-    try {
-      const response = await api.get("/ai/prices");
-      setLivePrices(response.data.prices || {});
-    } catch (error) {
-      // Silently fail - prices are not critical
-    }
-  };
-
-  const checkWebSocketStatus = async () => {
-    try {
-      const response = await api.get("/ai/market-status");
-      setWsStatus(
-        response.data.status?.connected ? "connected" : "disconnected",
-      );
-    } catch (error) {
-      setWsStatus("error");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
-      </div>
-    );
-  }
-
-  const statCards = [
+  const statsData = [
+    {
+      title: "Total Trades",
+      value: stats?.total || 0,
+      icon: Activity,
+      color: "blue",
+    },
+    {
+      title: "Win Rate",
+      value: `${stats?.winRate?.toFixed(1) || 0}%`,
+      icon: BarChart3,
+      color: stats?.winRate >= 50 ? "green" : "yellow",
+    },
     {
       title: "Total P&L",
       value: `$${stats?.totalPnl?.toFixed(2) || "0.00"}`,
       icon: DollarSign,
-      color: stats?.totalPnl >= 0 ? "text-success" : "text-danger",
-    },
-    {
-      title: "Win Rate",
-      value: `${stats?.winRate?.toFixed(1) || "0"}%`,
-      icon: Percent,
-      color: stats?.winRate >= 50 ? "text-success" : "text-danger",
+      color: stats?.totalPnl >= 0 ? "green" : "red",
     },
     {
       title: "Avg R:R",
-      value: `${stats?.avgRR?.toFixed(2) || "0"}:1`,
-      icon: Award,
-      color: "text-accent",
-    },
-    {
-      title: "Total Trades",
-      value: stats?.total || 0,
+      value: `${stats?.avgRR?.toFixed(2) || "0.00"}:1`,
       icon: TrendingUp,
-      color: "text-accent",
+      color: "blue",
     },
   ];
 
-  const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
-  };
-
-  // Get key prices
-  const goldPrice = livePrices?.XAUUSD?.price || "---";
-  const silverPrice = livePrices?.XAGUSD?.price || "---";
-  const eurUsdPrice = livePrices?.EURUSD?.price || "---";
-
   return (
-    <div>
+    <div className="space-y-6 md:space-y-8 animate-fade-in">
       {/* Welcome Section */}
-      <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-bold text-white flex items-center gap-3">
-          {greeting()}, {user?.username}! 👋
-          <span className="text-sm font-normal flex items-center gap-2">
-            <Activity
-              className={`w-3 h-3 ${wsStatus === "connected" ? "text-success animate-pulse" : "text-danger"}`}
-            />
-            <span className="text-xs text-gray-400">
-              {wsStatus === "connected" ? "Live" : "Disconnected"}
-            </span>
+      <div className="flex flex-col gap-4 md:flex-row md:items-start lg:items-center lg:justify-between">
+        <div className="space-y-2 flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight truncate">
+            Welcome back,{" "}
+            <span className="text-gradient">{user?.username || "Trader"}</span>{" "}
+            👋
+          </h1>
+          <p className="text-gray-400 text-sm sm:text-base">
+            Here's your trading overview for today
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-400 text-sm sm:text-base border border-green-500/20 whitespace-nowrap animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            Market Open
           </span>
-        </h1>
-        <p className="text-gray-400 mt-1">Welcome to your trading journal</p>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {statCards.map((stat, index) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        {statsData.map((stat, index) => (
           <div
             key={index}
-            className="bg-dark-800 border border-dark-700 rounded-xl p-5 relative overflow-hidden"
+            className="animate-slide-up"
+            style={{ animationDelay: `${index * 0.1}s` }}
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-cond text-gray-500 tracking-wider">
-                  {stat.title}
-                </p>
-                <p
-                  className={`text-2xl font-mono font-bold mt-1 ${stat.color}`}
-                >
-                  {stat.value}
-                </p>
-              </div>
-              {stat.icon && <stat.icon className={`w-6 h-6 ${stat.color}`} />}
-            </div>
+            <StatsCard {...stat} />
           </div>
         ))}
       </div>
 
-      {/* Live Prices */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-dark-800 border border-dark-700 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">XAUUSD (Gold)</span>
-            <span className="text-xs text-success animate-pulse">● Live</span>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
+        <div className="xl:col-span-2">
+          <div className="card-premium h-full min-h-[340px] md:min-h-[380px] hover-lift">
+            <h3 className="text-base md:text-lg font-semibold text-white mb-4">
+              Equity Curve
+            </h3>
+            <EquityChart data={equity} />
           </div>
-          <div className="text-xl font-mono font-bold text-white mt-1">
-            {goldPrice}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">+0.05%</div>
         </div>
-        <div className="bg-dark-800 border border-dark-700 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">XAGUSD (Silver)</span>
-            <span className="text-xs text-success animate-pulse">● Live</span>
+        <div className="xl:col-span-1">
+          <div className="card-premium h-full min-h-[340px] md:min-h-[380px] hover-lift">
+            <h3 className="text-base md:text-lg font-semibold text-white mb-4">
+              Market Sentiment
+            </h3>
+            <SentimentWidget />
           </div>
-          <div className="text-xl font-mono font-bold text-white mt-1">
-            {silverPrice}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">+0.03%</div>
-        </div>
-        <div className="bg-dark-800 border border-dark-700 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">EURUSD</span>
-            <span className="text-xs text-success animate-pulse">● Live</span>
-          </div>
-          <div className="text-xl font-mono font-bold text-white mt-1">
-            {eurUsdPrice}
-          </div>
-          <div className="text-xs text-gray-500 mt-1">-0.02%</div>
         </div>
       </div>
 
-      {/* Recent SMT Signals (if any) */}
-      {smtSignals.length > 0 && (
-        <div className="card mb-6 border border-accent/30">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-cond text-accent tracking-wider flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              Recent SMT Signals
-            </h3>
-            <span className="text-xs text-gray-500">Live detection</span>
-          </div>
-          <div className="space-y-2">
-            {smtSignals.map((signal, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-2 bg-dark-900 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  {signal.type === "BULLISH" ? (
-                    <TrendingUp className="w-4 h-4 text-success" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-danger" />
-                  )}
-                  <span className="text-sm text-white">
-                    {signal.primaryAsset}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    vs {signal.correlatedAsset}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`text-xs font-medium ${signal.confidence > 80 ? "text-success" : "text-warning"}`}
-                  >
-                    {signal.confidence}% confidence
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {signal.timeframe}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Welcome Message */}
-      <div className="bg-dark-800 border border-dark-700 rounded-xl p-6">
-        <h3 className="text-sm font-cond text-accent tracking-wider mb-4">
-          Welcome to TRADEX
+      {/* Recent Trades */}
+      <div className="card-premium hover-lift">
+        <h3 className="text-base md:text-lg font-semibold text-white mb-4">
+          Recent Trades
         </h3>
-        <p className="text-gray-400">
-          {stats?.total > 0
-            ? `You have ${stats.total} trades logged. Keep up the good work! 📈`
-            : "Start logging your trades to see detailed analytics and performance metrics."}
-        </p>
+        <RecentTrades trades={recentTrades} />
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

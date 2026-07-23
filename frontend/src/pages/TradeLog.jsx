@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, TrendingUp, TrendingDown } from "lucide-react";
 import api from "../api/client";
 import toast from "react-hot-toast";
 import TradeForm from "../components/trades/TradeForm";
+import PageContainer from "../components/common/PageContainer";
 
 const TradeLog = () => {
   const [trades, setTrades] = useState([]);
@@ -24,10 +25,8 @@ const TradeLog = () => {
     try {
       setLoading(true);
       const response = await api.get("/trades");
-      console.log("Fetched trades:", response.data);
       setTrades(response.data || []);
     } catch (error) {
-      console.error("Failed to fetch trades:", error);
       toast.error("Failed to load trades");
     } finally {
       setLoading(false);
@@ -36,9 +35,7 @@ const TradeLog = () => {
 
   const handleCreateTrade = async (tradeData) => {
     try {
-      console.log("Creating trade:", tradeData);
       const response = await api.post("/trades", tradeData);
-      console.log("Trade created:", response.data);
       toast.success("Trade saved successfully!");
       setShowForm(false);
       await fetchTrades();
@@ -56,13 +53,12 @@ const TradeLog = () => {
 
   const handleUpdateTrade = async (tradeData) => {
     try {
-      const response = await api.put(`/trades/${editingTrade.id}`, tradeData);
+      await api.put(`/trades/${editingTrade.id}`, tradeData);
       toast.success("Trade updated successfully!");
       setShowForm(false);
       setEditingTrade(null);
       await fetchTrades();
     } catch (error) {
-      console.error("Update error:", error);
       toast.error(error.response?.data?.error || "Failed to update trade");
     }
   };
@@ -75,7 +71,6 @@ const TradeLog = () => {
       toast.success("Trade deleted");
       await fetchTrades();
     } catch (error) {
-      console.error("Delete error:", error);
       toast.error("Failed to delete trade");
     }
   };
@@ -130,14 +125,16 @@ const TradeLog = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
-      </div>
+      <PageContainer className="py-20">
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div>
+    <PageContainer>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-white">Trade Log</h1>
@@ -352,7 +349,7 @@ const TradeLog = () => {
         trade={editingTrade}
         isEditing={!!editingTrade}
       />
-    </div>
+    </PageContainer>
   );
 };
 

@@ -1,8 +1,8 @@
 import React from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { Activity, LogOut, User, Clock } from "lucide-react";
+import { Activity, LogOut, User, Clock, Menu } from "lucide-react";
 
-const Header = () => {
+const Header = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout } = useAuth();
   const [time, setTime] = React.useState(new Date());
 
@@ -12,8 +12,16 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-dark-800/90 backdrop-blur-sm border-b border-dark-700 h-16 px-6 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-dark-800/90 backdrop-blur-sm border-b border-dark-700 h-[73px] px-4 sm:px-6 flex items-center justify-between">
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label="Toggle navigation"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors lg:hidden"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
         <Activity className="w-8 h-8 text-accent" />
         <h1 className="text-xl font-cond font-bold text-accent tracking-wider">
           TRADEX

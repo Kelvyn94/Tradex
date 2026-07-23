@@ -1,0 +1,97 @@
+/**
+ * Data Engine Routes
+ * Exposes Data Engine API endpoints to frontend
+ */
+
+const express = require("express");
+const router = express.Router();
+const dataEngineService = require("../services/dataEngine.service");
+
+// Get AI Insights
+router.get("/insights", async (req, res) => {
+  try {
+    const { asset, limit } = req.query;
+    const result = await dataEngineService.getInsights(asset, limit);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate new insights
+router.post("/insights/generate", async (req, res) => {
+  try {
+    const { asset } = req.body;
+    const result = await dataEngineService.generateInsights(asset);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get trading signals
+router.get("/signals", async (req, res) => {
+  try {
+    const { asset, limit } = req.query;
+    const result = await dataEngineService.getSignals(asset, limit);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get market data
+router.get("/candles/:asset", async (req, res) => {
+  try {
+    const { asset } = req.params;
+    const { timeframe, limit } = req.query;
+    const result = await dataEngineService.getCandles(asset, timeframe, limit);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get latest price
+router.get("/price/:asset", async (req, res) => {
+  try {
+    const { asset } = req.params;
+    const result = await dataEngineService.getLatestPrice(asset);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get correlation matrix
+router.get("/correlation", async (req, res) => {
+  try {
+    const result = await dataEngineService.getCorrelation();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get ICT analysis
+router.get("/ict/:asset", async (req, res) => {
+  try {
+    const { asset } = req.params;
+    const result = await dataEngineService.getICT(asset);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get summary
+router.get("/summary", async (req, res) => {
+  try {
+    const result = await dataEngineService.getSummary();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;

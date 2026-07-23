@@ -1,45 +1,29 @@
 import React from "react";
 
-const StatsCard = ({
+export default function StatsCard({
   title,
   value,
   icon: Icon,
-  color = "accent",
-  subtitle,
-  trend,
-}) => {
+  color = "blue",
+}) {
   const colorClasses = {
-    green: "text-success",
-    red: "text-danger",
-    accent: "text-accent",
-    yellow: "text-warning",
+    blue: "text-blue-400 bg-blue-500/10",
+    green: "text-green-400 bg-green-500/10",
+    red: "text-red-400 bg-red-500/10",
+    yellow: "text-yellow-400 bg-yellow-500/10",
   };
 
   return (
-    <div className={`stat-card ${color}`}>
-      <div className="flex items-start justify-between">
+    <div className="stat-card">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-cond text-gray-500 tracking-wider">
-            {title}
-          </p>
-          <p
-            className={`text-2xl font-mono font-bold mt-1 ${colorClasses[color]}`}
-          >
-            {value}
-          </p>
-          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
-          {trend && (
-            <span
-              className={`text-xs ${trend >= 0 ? "text-success" : "text-danger"} mt-1 inline-block`}
-            >
-              {trend >= 0 ? "↑" : "↓"} {Math.abs(trend)}%
-            </span>
-          )}
+          <p className="stat-label">{title}</p>
+          <p className="stat-value">{value}</p>
         </div>
-        {Icon && <Icon className={`w-6 h-6 ${colorClasses[color]}`} />}
+        <div className={`p-3 rounded-xl ${colorClasses[color]}`}>
+          <Icon size={20} />
+        </div>
       </div>
     </div>
   );
-};
-
-export default StatsCard;
+}

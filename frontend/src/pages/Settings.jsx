@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import api from "../api/client";
 import toast from "react-hot-toast";
+import PageContainer from "../components/common/PageContainer";
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
@@ -55,7 +56,7 @@ const Settings = () => {
   const initials = username.substring(0, 2).toUpperCase();
 
   return (
-    <div className="space-y-6">
+    <PageContainer className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -361,7 +362,7 @@ const Settings = () => {
           </button>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 92%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 210 20% 92%;
+
+    --primary: 190 95% 50%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 217 25% 16%;
+    --secondary-foreground: 210 20% 92%;
+
+    --muted: 217 25% 13%;
+    --muted-foreground: 215 15% 58%;
+
+    --accent: 217 25% 16%;
+    --accent-foreground: 210 20% 92%;
+
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 210 20% 98%;
+
+    --success: 152 100% 45%;
+    --warning: 45 100% 63%;
+
+    --border: 217 25% 17%;
+    --input: 217 25% 17%;
+    --ring: 190 95% 50%;
+
+    --radius: 0.5rem;
+
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+@layer utilities {
+  /* Tabular, non-jumping numerals for prices/P&L/volume — digits occupy
+     fixed width so live ticks update in place instead of reflowing text. */
+  .tabular-price {
+    @apply font-mono tracking-tighter tabular-nums;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+}

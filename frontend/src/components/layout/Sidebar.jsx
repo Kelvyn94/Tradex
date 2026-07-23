@@ -1,58 +1,136 @@
+// components/layout/Sidebar.jsx
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
-  ListTodo,
+  TrendingUp,
   BarChart3,
-  Brain,
+  Bot,
   Settings,
+  Database,
+  Brain,
+  Network,
+  X,
 } from "lucide-react";
 
-const Sidebar = () => {
-  const navItems = [
-    { path: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/trades", icon: ListTodo, label: "Trade Log" },
-    { path: "/analytics", icon: BarChart3, label: "Analytics" },
-    { path: "/ai-assistant", icon: Brain, label: "AI Assistant" },
-    { path: "/settings", icon: Settings, label: "Settings" },
-  ];
+const navItems = [
+  { name: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { name: "Trades", icon: TrendingUp, path: "/trades" },
+  { name: "Analytics", icon: BarChart3, path: "/analytics" },
+  { name: "AI Assistant", icon: Bot, path: "/ai-assistant" },
+  { name: "Data Engine", icon: Database, path: "/data-engine" },
+  { name: "ICT Analysis", icon: Brain, path: "/ict" },
+  { name: "Correlation", icon: Network, path: "/correlation" },
+  { name: "Settings", icon: Settings, path: "/settings" },
+];
 
+export default function Sidebar({ sidebarOpen, onClose }) {
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-20 lg:w-64 bg-dark-800/90 backdrop-blur-sm border-r border-dark-700 p-4 transition-all duration-300">
-      <nav className="space-y-2">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? "bg-accent/10 text-accent border border-accent/20"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-dark-700"
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            <span className="hidden lg:inline font-cond text-sm tracking-wider">
-              {item.label}
-            </span>
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="absolute bottom-4 left-4 right-4">
-        <div className="border-t border-dark-700 pt-4">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-            <span className="hidden lg:inline">System Online</span>
-          </div>
-          <p className="text-xs text-gray-600 mt-1 hidden lg:block">
-            TRADEX v2.0.0
-          </p>
+    <aside
+      className={`
+        fixed left-0 top-[73px] z-40 h-[calc(100vh-73px)] 
+        transition-all duration-300 ease-in-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        lg:relative lg:top-0 lg:h-screen lg:translate-x-0
+        ${sidebarOpen ? "lg:w-[200px]" : "lg:w-[72px]"}
+      `}
+      style={{
+        width: sidebarOpen ? "200px" : "72px",
+      }}
+    >
+      <div className="sidebar-premium flex h-full flex-col px-2 py-4 lg:px-3">
+        {/* Logo/Brand */}
+        <div
+          className={`
+            mb-6 flex items-center rounded-2xl border border-white/10 
+            bg-white/5 px-3 py-3 transition-all duration-300
+            ${sidebarOpen ? "justify-between" : "justify-center"}
+          `}
+        >
+          {sidebarOpen ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center font-bold text-white text-sm">
+                  T
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">
+                    Workspace
+                  </p>
+                  <p className="text-sm font-semibold text-white">TradeX</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="rounded-full border border-white/10 p-1.5 text-gray-400 hover:text-white transition-colors lg:hidden"
+                onClick={onClose}
+                aria-label="Close navigation"
+              >
+                <X size={16} />
+              </button>
+            </>
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center font-bold text-white text-base transition-all duration-300 hover:scale-110">
+              T
+            </div>
+          )}
         </div>
+
+        {/* Navigation - FIXED: Proper isActive handling */}
+        <div className="flex-1 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  onClose();
+                }
+              }}
+              className={({ isActive }) => `
+                nav-item transition-all duration-200 rounded-xl relative
+                ${isActive ? "active bg-blue-500/10 text-blue-400" : "text-gray-400"} 
+                ${!sidebarOpen ? "justify-center px-2" : "px-3"}
+                hover:bg-white/5 hover:text-white
+              `}
+              title={!sidebarOpen ? item.name : ""}
+            >
+              {({ isActive }) => (
+                <>
+                  <item.icon
+                    className="icon flex-shrink-0 transition-transform duration-200"
+                    size={20}
+                    strokeWidth={1.5}
+                  />
+                  <span
+                    className={`
+                      text-sm transition-all duration-200 whitespace-nowrap
+                      ${!sidebarOpen ? "hidden lg:hidden" : "block"}
+                    `}
+                  >
+                    {item.name}
+                  </span>
+                  {isActive && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+
+        {/* Footer */}
+        {sidebarOpen && (
+          <div className="mt-auto pt-4 border-t border-white/5 animate-slide-up">
+            <div className="px-3 py-2">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">
+                Version
+              </p>
+              <p className="text-xs text-gray-400">v2.0.0</p>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );
-};
-
-export default Sidebar;
+}

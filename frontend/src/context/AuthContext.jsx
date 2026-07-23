@@ -1,4 +1,10 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import api from "../api/client";
 import toast from "react-hot-toast";
 
@@ -30,7 +36,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  const login = async (username, password) => {
+  const login = useCallback(async (username, password) => {
     try {
       const response = await api.post("/auth/login", { username, password });
       const { token, user } = response.data;
@@ -45,9 +51,9 @@ export const AuthProvider = ({ children }) => {
       toast.error(error.response?.data?.error || "Login failed");
       return { success: false, error: error.response?.data?.error };
     }
-  };
+  }, []);
 
-  const register = async (username, email, password) => {
+  const register = useCallback(async (username, email, password) => {
     try {
       await api.post("/auth/register", { username, email, password });
       toast.success("Registration successful! Please login.");
@@ -56,30 +62,31 @@ export const AuthProvider = ({ children }) => {
       toast.error(error.response?.data?.error || "Registration failed");
       return { success: false, error: error.response?.data?.error };
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("tradex_token");
     localStorage.removeItem("tradex_user");
     delete api.defaults.headers.common["Authorization"];
     setToken(null);
     setUser(null);
     toast.success("Logged out");
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      loading,
+      login,
+      register,
+      logout,
+      isAuthenticated: !!token,
+    }),
+    [user, token, loading, login, register, logout],
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        login,
-        register,
-        logout,
-        isAuthenticated: !!token,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 };

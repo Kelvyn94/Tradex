@@ -1,20 +1,28 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: "/",
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-recharts": ["recharts"],
+        },
+      },
+    },
   },
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'https://tradex-backend-ecvs.onrender.com',
+      "/api": {
+        target: "http://localhost:5000",
         changeOrigin: true,
       },
     },
   },
-})
+});
