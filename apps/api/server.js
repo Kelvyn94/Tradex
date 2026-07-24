@@ -17,6 +17,7 @@ const sentimentRoutes = require("./src/routes/sentimentRoutes");
 const dataEngineRoutes = require("./src/routes/dataEngineRoutes");
 const insightsRoutes = require("./src/routes/insightsRoutes");
 const economicCalendarRoutes = require("./src/routes/economicCalendarRoutes");
+const smtRoutes = require("./src/routes/smtRoutes");
 const MarketDataService = require("./src/services/marketData.service");
 const websocketService = require("./src/services/websocket.service");
 const dataEngineService = require("./src/services/dataEngine.service");
@@ -124,6 +125,7 @@ app.use("/api/sentiment", sentimentRoutes);
 app.use("/api/data-engine", dataEngineRoutes);
 app.use("/api/insights", insightsRoutes);
 app.use("/api/calendar", economicCalendarRoutes);
+app.use("/api/smt", smtRoutes);
 
 // Market Data Routes (direct)
 app.get("/api/market/prices", async (req, res) => {

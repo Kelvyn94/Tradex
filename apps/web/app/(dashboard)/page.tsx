@@ -10,6 +10,7 @@ import { COTPositioningStrip } from "@/components/dashboard/cot-positioning-stri
 import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
 import { CorrelationWidget } from "@/components/dashboard/correlation-widget";
 import { MacroRegimeStrip } from "@/components/dashboard/macro-regime-strip";
+import { SMTSignalFeed } from "@/components/dashboard/smt-signal-feed";
 import { WidgetErrorBoundary } from "@/components/boundaries/widget-error-boundary";
 import { apiFetchJson } from "@/lib/api-client";
 import type { DashboardData } from "@/lib/types";
@@ -69,6 +70,10 @@ export default async function DashboardPage() {
           </WidgetErrorBoundary>
         </div>
       </div>
+
+      <WidgetErrorBoundary label="SMT Signals">
+        <SMTSignalFeed />
+      </WidgetErrorBoundary>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatsCard title="Total Trades" value={String(stats?.total ?? 0)} icon={Activity} />
