@@ -62,20 +62,36 @@ class WebSocketService {
       console.log('🔄 Auto-scanning SMT...');
       const SMTDetectionService = require('./smtDetection.service');
       const NotificationService = require('./notification.service');
-      
+      const User = require('../models/User');
+
       const groups = ['gold', 'forex', 'indices'];
-      
+
+      // SMT signals come from global market data, not any specific
+      // user's account, so there's no real "signal owner" to resolve to
+      // (see User.findEarliestCreated). Resolved lazily, at most once per
+      // scan, only if a high-confidence signal actually needs sending.
+      let recipient;
+      let recipientResolved = false;
+
       for (const group of groups) {
         const result = await SMTDetectionService.detectRealTimeSMT(group);
-        
+
         if (result.success && result.signals && result.signals.length > 0) {
           console.log(`📊 Auto-scan found ${result.signals.length} signals for ${group}`);
-          
-          for (const signal of result.signals) {
-            // ✅ Only send notifications for high-confidence signals
-            if (signal.confidence > 80) {
-              const userId = 1; // Replace with actual user ID
-              await NotificationService.sendSignal(userId, {
+
+          const highConfidenceSignals = result.signals.filter((s) => s.confidence > 80);
+
+          if (highConfidenceSignals.length > 0 && !recipientResolved) {
+            recipient = await User.findEarliestCreated();
+            recipientResolved = true;
+            if (!recipient) {
+              console.warn('⚠️ SMT signal found but no registered user to notify - skipping notification');
+            }
+          }
+
+          for (const signal of highConfidenceSignals) {
+            if (recipient) {
+              await NotificationService.sendSignal(recipient.id, {
                 action: signal.type === 'BULLISH' ? 'BUY' : 'SELL',
                 instrument: signal.primaryAsset,
                 entry: signal.primaryPrice,
@@ -91,7 +107,7 @@ class WebSocketService {
               });
             }
           }
-          
+
           this.emit('smt-update', result.signals);
         }
       }

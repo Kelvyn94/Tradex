@@ -112,6 +112,19 @@ class User {
     return result.rows[0];
   }
 
+  // Earliest-registered user - resolves a single "account owner"
+  // recipient for account-independent background alerts (e.g. SMT
+  // auto-scan signals, which are derived from global market data and
+  // aren't tied to any specific user's data - there's no real "signal
+  // owner" to resolve to). Single-tenant assumption; a real multi-user
+  // opt-in notification system is a distinct future feature.
+  static async findEarliestCreated() {
+    const result = await pool.query(
+      "SELECT id, username, email FROM users ORDER BY created_at ASC LIMIT 1",
+    );
+    return result.rows[0] || null;
+  }
+
   // Check if user exists
   static async exists(conditions) {
     const user = await this.findOne(conditions);
