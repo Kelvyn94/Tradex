@@ -8,6 +8,7 @@ import { SentimentWidget } from "@/components/dashboard/sentiment-widget";
 import { DailyBrief } from "@/components/dashboard/daily-brief";
 import { COTPositioningStrip } from "@/components/dashboard/cot-positioning-strip";
 import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
+import { CorrelationWidget } from "@/components/dashboard/correlation-widget";
 import { WidgetErrorBoundary } from "@/components/boundaries/widget-error-boundary";
 import { apiFetchJson } from "@/lib/api-client";
 import type { DashboardData } from "@/lib/types";
@@ -55,9 +56,14 @@ export default async function DashboardPage() {
             <COTPositioningStrip />
           </WidgetErrorBoundary>
         </div>
-        <WidgetErrorBoundary label="Economic Calendar">
-          <EconomicCalendarWidget />
-        </WidgetErrorBoundary>
+        <div className="space-y-4">
+          <WidgetErrorBoundary label="Economic Calendar">
+            <EconomicCalendarWidget />
+          </WidgetErrorBoundary>
+          <WidgetErrorBoundary label="Correlation">
+            <CorrelationWidget />
+          </WidgetErrorBoundary>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
