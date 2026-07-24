@@ -110,4 +110,15 @@ router.get("/cot", async (req, res) => {
   }
 });
 
+// Get DXY / 10Y Treasury yield / VIX macro regime snapshot
+router.get("/macro", async (req, res) => {
+  try {
+    const result = await dataEngineService.getMacroRegime();
+    res.json(result);
+  } catch (error) {
+    const status = error.response?.status === 503 ? 503 : 500;
+    res.status(status).json({ error: error.response?.data?.detail || error.message });
+  }
+});
+
 module.exports = router;

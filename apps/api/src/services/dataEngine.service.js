@@ -115,6 +115,12 @@ class DataEngineService {
     const response = await this.client.get("/api/v1/cot/positioning");
     return response.data;
   }
+
+  // Get DXY / 10Y Treasury yield / VIX macro regime snapshot
+  async getMacroRegime() {
+    const response = await this.client.get("/api/v1/macro/regime");
+    return response.data;
+  }
 }
 
 module.exports = new DataEngineService();

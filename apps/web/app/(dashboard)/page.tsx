@@ -9,6 +9,7 @@ import { DailyBrief } from "@/components/dashboard/daily-brief";
 import { COTPositioningStrip } from "@/components/dashboard/cot-positioning-strip";
 import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
 import { CorrelationWidget } from "@/components/dashboard/correlation-widget";
+import { MacroRegimeStrip } from "@/components/dashboard/macro-regime-strip";
 import { WidgetErrorBoundary } from "@/components/boundaries/widget-error-boundary";
 import { apiFetchJson } from "@/lib/api-client";
 import type { DashboardData } from "@/lib/types";
@@ -51,9 +52,12 @@ export default async function DashboardPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2">
+        <div className="space-y-4 xl:col-span-2">
           <WidgetErrorBoundary label="Institutional Positioning">
             <COTPositioningStrip />
+          </WidgetErrorBoundary>
+          <WidgetErrorBoundary label="Macro Regime">
+            <MacroRegimeStrip />
           </WidgetErrorBoundary>
         </div>
         <div className="space-y-4">
