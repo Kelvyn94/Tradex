@@ -1,7 +1,6 @@
 // Backend/src/services/smtDetection.service.js
 const WebSocketService = require("./websocket.service");
 const HistoricalDataService = require("./historicalData.service");
-const AIService = require("./ai.service");
 
 class SMTDetectionService {
   constructor() {
@@ -156,23 +155,18 @@ class SMTDetectionService {
           );
 
           if (divergence) {
-            // AI Validation (uses rate limiting)
-            let aiValidation = null;
-            try {
-              aiValidation = await AIService.validateSMTDivergences([
-                divergence,
-              ]);
-            } catch (aiError) {
-              console.warn("AI validation skipped:", aiError.message);
-            }
-
+            // confidence is the deterministic heuristic from
+            // calculateConfidence() below - there is no AI validation step;
+            // a prior version claimed one via a method that didn't exist on
+            // AIService, which always failed and silently fell back to this
+            // same heuristic anyway. Removed rather than reimplemented: an
+            // LLM opinion on numeric divergence data isn't a rigorous
+            // quantitative validation step, so it doesn't belong in the
+            // confidence pipeline without a real, specific method for it.
             signals.push({
               ...divergence,
               group: groupName,
               timeframe: timeframe,
-              aiValidated: !!aiValidation,
-              aiConfidence:
-                aiValidation?.[0]?.confidence || divergence.confidence,
               timestamp: new Date().toISOString(),
             });
           }
@@ -350,6 +344,7 @@ class SMTDetectionService {
 
     const currentPriority = timeframePriority[currentTimeframe] || 2;
     const result = {
+      checked: false, // whether a real higher-timeframe comparison actually ran
       aligned: false,
       description: "",
       higherTimeframe: null,
@@ -362,29 +357,30 @@ class SMTDetectionService {
         (t) => timeframePriority[t] === currentPriority + 1,
       );
       if (higher) {
-        try {
-          const higherData = await HistoricalDataService.getSMTData(
-            primary,
-            correlated,
-            higher,
-            20,
-          );
+        const higherData = await HistoricalDataService.getSMTData(
+          primary,
+          correlated,
+          higher,
+          20,
+        );
 
-          if (higherData.primary && higherData.correlated) {
-            const primaryTrend = this.calculateTrend(higherData.primary);
-            const correlatedTrend = this.calculateTrend(higherData.correlated);
+        if (higherData.primary && higherData.correlated) {
+          result.checked = true;
+          const primaryTrend = this.calculateTrend(higherData.primary);
+          const correlatedTrend = this.calculateTrend(higherData.correlated);
 
-            if (
-              (primaryTrend > 0 && correlatedTrend < 0) ||
-              (primaryTrend < 0 && correlatedTrend > 0)
-            ) {
-              result.aligned = true;
-              result.higherTimeframe = higher;
-              result.description = `${higher} timeframe confirms divergence`;
-            }
+          if (
+            (primaryTrend > 0 && correlatedTrend < 0) ||
+            (primaryTrend < 0 && correlatedTrend > 0)
+          ) {
+            result.aligned = true;
+            result.higherTimeframe = higher;
+            result.description = `${higher} timeframe confirms divergence`;
+          } else {
+            result.description = `${higher} timeframe does not confirm divergence`;
           }
-        } catch (error) {
-          // Silently fail for timeframe check
+        } else {
+          result.description = `${higher} timeframe data unavailable - not factored into confidence`;
         }
       }
     }
