@@ -74,10 +74,22 @@ const TradeForm = ({
     let riskReward = null;
     let riskInDollars = null;
     if (entry && stopLoss && takeProfit) {
-      const risk = Math.abs(entry - stopLoss);
-      const reward = Math.abs(takeProfit - entry);
-      riskReward = risk === 0 ? null : reward / risk;
-      riskInDollars = risk * size;
+      // Mirrors Trade.js's calculateRiskReward on the backend: only show a
+      // ratio when SL/TP are actually on the correct side of entry for this
+      // direction. Math.abs() alone (the previous logic here) showed a
+      // plausible-looking ratio even when they were inverted, which then
+      // silently changed to a different value (or "-") once saved.
+      const isConsistent =
+        formData.direction === "Long"
+          ? stopLoss < entry && takeProfit > entry
+          : stopLoss > entry && takeProfit < entry;
+
+      if (isConsistent) {
+        const risk = Math.abs(entry - stopLoss);
+        const reward = Math.abs(takeProfit - entry);
+        riskReward = risk === 0 ? null : reward / risk;
+        riskInDollars = risk * size;
+      }
     }
 
     setPreview({
