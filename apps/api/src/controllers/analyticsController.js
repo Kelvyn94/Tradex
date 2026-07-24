@@ -59,8 +59,8 @@ exports.getPerformanceMetrics = async (req, res) => {
       });
     }
 
-    const winningTrades = trades.filter((t) => (t.pnl || 0) > 0);
-    const losingTrades = trades.filter((t) => (t.pnl || 0) < 0);
+    const winningTrades = trades.filter((t) => Trade.classifyOutcome(t.pnl || 0) === "win");
+    const losingTrades = trades.filter((t) => Trade.classifyOutcome(t.pnl || 0) === "loss");
 
     const totalWins = winningTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
     const totalLosses = Math.abs(

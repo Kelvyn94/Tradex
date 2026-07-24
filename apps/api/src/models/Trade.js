@@ -40,6 +40,93 @@ function calculateRiskReward(direction, entry, stopLoss, takeProfit) {
   return risk === 0 ? null : reward / risk;
 }
 
+// Single source of truth for what counts as a win/loss/breakeven. Two
+// call sites previously disagreed: getStats()/findByUser() counted
+// pnl===0 as a win, while analyticsController counted it as neither a
+// win nor a loss but still included it in the win-rate denominator -
+// the correct convention (a $0 trade shouldn't inflate win rate the way
+// counting it as a win does). Every consumer must classify through this
+// function so live stats and any future backtesting stats can't diverge.
+function classifyOutcome(pnl) {
+  if (pnl > 0) return "win";
+  if (pnl < 0) return "loss";
+  return "breakeven";
+}
+
+// Pure aggregation over already-fetched trades (no DB access), so the
+// exact same computation backs getStats() and is directly unit-testable
+// / reusable by anything else that needs identical stats (e.g. a future
+// backtesting report) without re-deriving this logic.
+function computeStats(trades) {
+  if (!trades.length) {
+    return {
+      total: 0,
+      wins: 0,
+      losses: 0,
+      winRate: 0,
+      totalPnl: 0,
+      avgRR: 0,
+      largestWin: 0,
+      largestLoss: 0,
+      maxConsecWin: 0,
+      maxConsecLoss: 0,
+    };
+  }
+
+  let wins = 0;
+  let losses = 0;
+  let totalPnl = 0;
+  let largestWin = 0;
+  let largestLoss = 0;
+  let maxConsecWin = 0;
+  let maxConsecLoss = 0;
+  let curWin = 0;
+  let curLoss = 0;
+  const rrValues = [];
+
+  for (const t of trades) {
+    const pnl = t.pnl;
+    totalPnl += pnl;
+
+    const outcome = classifyOutcome(pnl);
+    if (outcome === "win") {
+      wins++;
+      curWin++;
+      curLoss = 0;
+      if (curWin > maxConsecWin) maxConsecWin = curWin;
+      if (pnl > largestWin) largestWin = pnl;
+    } else if (outcome === "loss") {
+      losses++;
+      curLoss++;
+      curWin = 0;
+      if (curLoss > maxConsecLoss) maxConsecLoss = curLoss;
+      if (pnl < largestLoss) largestLoss = pnl;
+    } else {
+      // Breakeven: a real outcome, but not a win or a loss - doesn't
+      // extend either streak.
+      curWin = 0;
+      curLoss = 0;
+    }
+
+    if (t.risk_reward_ratio !== null && t.risk_reward_ratio !== undefined) {
+      rrValues.push(t.risk_reward_ratio);
+    }
+  }
+
+  return {
+    total: trades.length,
+    wins,
+    losses,
+    winRate: (wins / trades.length) * 100,
+    totalPnl,
+    avgRR: rrValues.length > 0 ? rrValues.reduce((a, b) => a + b, 0) / rrValues.length : 0,
+    largestWin,
+    largestLoss,
+    maxConsecWin,
+    maxConsecLoss,
+  };
+}
+
 class Trade {
   static async create(tradeData) {
   const {
@@ -118,9 +205,9 @@ class Trade {
 
     // Filter by outcome if specified
     if (filters.outcome === "win") {
-      trades = trades.filter((t) => t.pnl >= 0);
+      trades = trades.filter((t) => classifyOutcome(t.pnl) === "win");
     } else if (filters.outcome === "loss") {
-      trades = trades.filter((t) => t.pnl < 0);
+      trades = trades.filter((t) => classifyOutcome(t.pnl) === "loss");
     }
 
     return trades;
@@ -196,73 +283,22 @@ class Trade {
     return result.rows[0] || null;
   }
 
-  // Get statistics
+  // Get statistics. Computed via the shared computeStats() (same function
+  // analyticsController uses) rather than a separate SQL aggregation, so
+  // the two can't classify wins/losses/breakeven differently again.
   static async getStats(userId) {
     const result = await pool.query(
-      `SELECT 
-        COUNT(*) as total,
-        COUNT(CASE WHEN pnl >= 0 THEN 1 END) as wins,
-        COUNT(CASE WHEN pnl < 0 THEN 1 END) as losses,
-        COALESCE(SUM(pnl), 0) as total_pnl,
-        COALESCE(AVG(CASE WHEN risk_reward_ratio IS NOT NULL THEN risk_reward_ratio END), 0) as avg_rr,
-        COALESCE(MAX(CASE WHEN pnl >= 0 THEN pnl END), 0) as largest_win,
-        COALESCE(MIN(CASE WHEN pnl < 0 THEN pnl END), 0) as largest_loss
-      FROM trades
-      WHERE user_id = $1`,
+      "SELECT pnl, risk_reward_ratio FROM trades WHERE user_id = $1 ORDER BY date ASC",
       [userId],
     );
 
-    const stats = result.rows[0];
-    if (!stats || stats.total === "0") {
-      return {
-        total: 0,
-        wins: 0,
-        losses: 0,
-        winRate: 0,
-        totalPnl: 0,
-        avgRR: 0,
-        largestWin: 0,
-        largestLoss: 0,
-        maxConsecWin: 0,
-        maxConsecLoss: 0,
-      };
-    }
+    const trades = result.rows.map((row) => ({
+      pnl: parseFloat(row.pnl) || 0,
+      risk_reward_ratio:
+        row.risk_reward_ratio !== null ? parseFloat(row.risk_reward_ratio) : null,
+    }));
 
-    // Calculate consecutive wins/losses
-    const trades = await pool.query(
-      "SELECT pnl FROM trades WHERE user_id = $1 ORDER BY date ASC",
-      [userId],
-    );
-
-    let maxConsecWin = 0;
-    let maxConsecLoss = 0;
-    let curWin = 0;
-    let curLoss = 0;
-
-    trades.rows.forEach((t) => {
-      if (t.pnl >= 0) {
-        curWin++;
-        curLoss = 0;
-        if (curWin > maxConsecWin) maxConsecWin = curWin;
-      } else {
-        curLoss++;
-        curWin = 0;
-        if (curLoss > maxConsecLoss) maxConsecLoss = curLoss;
-      }
-    });
-
-    return {
-      total: parseInt(stats.total),
-      wins: parseInt(stats.wins || 0),
-      losses: parseInt(stats.losses || 0),
-      winRate: stats.total > 0 ? (stats.wins / stats.total) * 100 : 0,
-      totalPnl: parseFloat(stats.total_pnl),
-      avgRR: parseFloat(stats.avg_rr) || 0,
-      largestWin: parseFloat(stats.largest_win) || 0,
-      largestLoss: parseFloat(stats.largest_loss) || 0,
-      maxConsecWin,
-      maxConsecLoss,
-    };
+    return computeStats(trades);
   }
 
   // Get equity curve data
@@ -302,5 +338,8 @@ class Trade {
     }));
   }
 }
+
+Trade.classifyOutcome = classifyOutcome;
+Trade.computeStats = computeStats;
 
 module.exports = Trade;
