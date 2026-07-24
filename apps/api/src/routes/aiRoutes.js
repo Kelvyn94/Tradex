@@ -23,15 +23,6 @@ router.get("/health", (req, res) => {
 // Chat with AI
 router.post("/chat", aiController.chat);
 
-// Get market insights for an asset
-router.get("/insights/:asset", aiController.getMarketInsights);
-
-// Get ICT analysis
-router.get("/ict/:asset", aiController.getICTAnalysis);
-
-// Get market summary for multiple assets
-router.get("/summary", aiController.getMarketSummary);
-
 // Get market status
 router.get("/market-status", async (req, res) => {
   try {
@@ -44,39 +35,6 @@ router.get("/market-status", async (req, res) => {
       timestamp: now.toISOString(),
       isMarketOpen: isMarketOpen,
       message: isMarketOpen ? "Market is open" : "Market is closed",
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get prices (placeholder - will be replaced with real data)
-router.get("/prices", async (req, res) => {
-  try {
-    const assets = ["EURUSD", "GBPUSD", "XAUUSD", "XAGUSD", "XAUEUR", "XAUGBP"];
-    const prices = {};
-    for (const asset of assets) {
-      prices[asset] = {
-        price: 0,
-        change: 0,
-        timestamp: new Date().toISOString(),
-      };
-    }
-    res.json(prices);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Detect SMT (placeholder - will be replaced with real data)
-router.post("/detect-smt", async (req, res) => {
-  try {
-    const { group } = req.body;
-    res.json({
-      success: true,
-      group: group || "default",
-      divergence: false,
-      message: "SMT detection placeholder",
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
