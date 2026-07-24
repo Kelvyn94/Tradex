@@ -5,7 +5,6 @@ import { StatsCard } from "@/components/dashboard/stats-card";
 import { EquityChart } from "@/components/dashboard/equity-chart";
 import { RecentTrades } from "@/components/dashboard/recent-trades";
 import { SentimentWidget } from "@/components/dashboard/sentiment-widget";
-import { DailyBrief } from "@/components/dashboard/daily-brief";
 import { COTPositioningStrip } from "@/components/dashboard/cot-positioning-strip";
 import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
 import { CorrelationWidget } from "@/components/dashboard/correlation-widget";
@@ -45,13 +44,9 @@ export default async function DashboardPage() {
         </Badge>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <WidgetErrorBoundary label="Daily Brief">
-            <DailyBrief />
-          </WidgetErrorBoundary>
-        </CardContent>
-      </Card>
+      <WidgetErrorBoundary label="Market Brief">
+        <MarketBriefWidget />
+      </WidgetErrorBoundary>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
@@ -71,10 +66,6 @@ export default async function DashboardPage() {
           </WidgetErrorBoundary>
         </div>
       </div>
-
-      <WidgetErrorBoundary label="Market Brief">
-        <MarketBriefWidget />
-      </WidgetErrorBoundary>
 
       <WidgetErrorBoundary label="SMT Signals">
         <SMTSignalFeed />
