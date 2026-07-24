@@ -72,7 +72,7 @@ export async function COTPositioningStrip() {
             CFTC COT &middot; week of {positioning[0].reportDate}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {positioning.map((p) => (
             <div key={p.asset} className="rounded-lg border border-border p-3">
               <p className="mb-2 text-xs font-bold text-foreground">

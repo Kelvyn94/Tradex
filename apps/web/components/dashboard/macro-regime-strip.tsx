@@ -79,9 +79,9 @@ export async function MacroRegimeStrip() {
             </Badge>
           )}
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {items.map(({ key, series, format }) => (
-            <div key={key} className="rounded-lg border border-border p-3 text-center">
+            <div key={key} className="rounded-lg border border-border p-2 text-center sm:p-3">
               <p className="mb-1 text-xs font-bold text-foreground">{key}</p>
               {series ? (
                 <>

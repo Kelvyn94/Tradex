@@ -46,14 +46,14 @@ export async function EconomicCalendarWidget() {
           <CalendarClock className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Upcoming Releases</h3>
         </div>
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {releases.slice(0, 8).map((release, idx) => (
             <li
               key={`${release.releaseId}-${release.date}-${idx}`}
-              className="flex items-center justify-between text-xs"
+              className="flex flex-col gap-0.5 text-xs sm:flex-row sm:items-start sm:justify-between sm:gap-3"
             >
-              <span className="text-foreground">{release.name}</span>
-              <span className="tabular-price text-muted-foreground">{release.date}</span>
+              <span className="min-w-0 flex-1 text-foreground">{release.name}</span>
+              <span className="tabular-price shrink-0 text-muted-foreground">{release.date}</span>
             </li>
           ))}
         </ul>
