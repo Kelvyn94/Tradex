@@ -33,12 +33,10 @@ app.use(
 );
 
 const allowedOrigins = [
-  "http://localhost:5173",
   "http://localhost:3000",
   "http://localhost:5000",
   "https://tradex-silk-three.vercel.app",
   "https://tradex-backend-ecvs.onrender.com",
-  "https://tradex-kelvyn94.vercel.app",
 ];
 if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
