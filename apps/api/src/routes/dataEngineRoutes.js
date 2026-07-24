@@ -121,4 +121,17 @@ router.get("/macro", async (req, res) => {
   }
 });
 
+// Run a backtest
+router.post("/backtest/run", async (req, res) => {
+  try {
+    const result = await dataEngineService.runBacktest(req.body);
+    res.json(result);
+  } catch (error) {
+    // Propagate the Data Engine's actual status (400 bad params, 503 no
+    // data, 422 engine error) instead of flattening everything to 500.
+    const status = error.response?.status || 500;
+    res.status(status).json({ error: error.response?.data?.detail || error.message });
+  }
+});
+
 module.exports = router;

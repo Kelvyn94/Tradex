@@ -10,6 +10,7 @@ import {
   Database,
   Brain,
   Network,
+  PlayCircle,
   Settings,
   X,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { name: "Data Engine", icon: Database, href: "/data-engine" },
   { name: "ICT Analysis", icon: Brain, href: "/ict" },
   { name: "Correlation", icon: Network, href: "/correlation" },
+  { name: "Backtest", icon: PlayCircle, href: "/backtest" },
   { name: "Settings", icon: Settings, href: "/settings" },
 ];
 

@@ -121,6 +121,17 @@ class DataEngineService {
     const response = await this.client.get("/api/v1/macro/regime");
     return response.data;
   }
+
+  // Run a backtest (strategy, assets, timeframe, date range/lookback,
+  // strategy params) and return the engine's stats output
+  async runBacktest(params) {
+    const response = await this.client.post("/api/v1/backtest/run", params, {
+      // Backtests over more history can take longer than the standard
+      // 15s Data Engine timeout - give this one more room.
+      timeout: 60000,
+    });
+    return response.data;
+  }
 }
 
 module.exports = new DataEngineService();
