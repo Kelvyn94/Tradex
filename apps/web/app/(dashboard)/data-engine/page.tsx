@@ -3,6 +3,7 @@ import { Database } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FeedOffline } from "@/components/data-engine/feed-offline";
+import { PriceTicker } from "@/components/data-engine/price-ticker";
 import { fetchDataEngine, type Insight, type Signal } from "@/lib/data-engine";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,8 @@ export default async function DataEngineDashboardPage() {
           AI-generated insights and trading signals from the external data engine
         </p>
       </div>
+
+      <PriceTicker />
 
       <Card>
         <CardContent className="p-4">

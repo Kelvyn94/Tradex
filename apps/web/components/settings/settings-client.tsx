@@ -261,17 +261,15 @@ export function SettingsClient({ user }: SettingsClientProps) {
         <CardContent className="p-4">
           <h3 className="mb-4 text-sm font-semibold text-primary">Quick Actions</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <button
-              type="button"
-              disabled
-              title="Coming soon"
-              className="cursor-not-allowed rounded-lg border border-border bg-background/50 p-3 text-left opacity-50"
+            <a
+              href="/api/trades/export"
+              className="rounded-lg border border-border bg-background/50 p-3 text-left transition-colors hover:border-primary"
             >
               <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
                 <Download className="h-3.5 w-3.5" /> Export Data
               </div>
-              <div className="text-xs text-muted-foreground">Coming soon</div>
-            </button>
+              <div className="text-xs text-muted-foreground">Download CSV</div>
+            </a>
             <button
               type="button"
               onClick={handleTestNotification}
