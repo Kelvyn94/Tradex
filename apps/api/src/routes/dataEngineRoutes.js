@@ -94,4 +94,20 @@ router.get("/summary", async (req, res) => {
   }
 });
 
+// Get CFTC COT positioning (Commercial vs Non-Commercial vs small traders)
+router.get("/cot", async (req, res) => {
+  try {
+    const result = await dataEngineService.getCOTPositioning();
+    res.json(result);
+  } catch (error) {
+    // The Data Engine returns 503 when positioning is genuinely
+    // unavailable (no data for any tracked asset) - propagate that
+    // distinct status rather than flattening everything to 500, so the
+    // frontend can render an explicit "unavailable" state instead of a
+    // generic error.
+    const status = error.response?.status === 503 ? 503 : 500;
+    res.status(status).json({ error: error.response?.data?.detail || error.message });
+  }
+});
+
 module.exports = router;

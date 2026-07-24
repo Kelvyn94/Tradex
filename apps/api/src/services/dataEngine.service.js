@@ -108,6 +108,13 @@ class DataEngineService {
     const response = await this.client.get("/api/v1/insights/summary");
     return response.data;
   }
+
+  // Get CFTC Commitment of Traders (Commercial vs Non-Commercial
+  // positioning) for the tracked assets
+  async getCOTPositioning() {
+    const response = await this.client.get("/api/v1/cot/positioning");
+    return response.data;
+  }
 }
 
 module.exports = new DataEngineService();

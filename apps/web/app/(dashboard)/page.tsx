@@ -6,6 +6,8 @@ import { EquityChart } from "@/components/dashboard/equity-chart";
 import { RecentTrades } from "@/components/dashboard/recent-trades";
 import { SentimentWidget } from "@/components/dashboard/sentiment-widget";
 import { DailyBrief } from "@/components/dashboard/daily-brief";
+import { COTPositioningStrip } from "@/components/dashboard/cot-positioning-strip";
+import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
 import { WidgetErrorBoundary } from "@/components/boundaries/widget-error-boundary";
 import { apiFetchJson } from "@/lib/api-client";
 import type { DashboardData } from "@/lib/types";
@@ -46,6 +48,17 @@ export default async function DashboardPage() {
           </WidgetErrorBoundary>
         </CardContent>
       </Card>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <WidgetErrorBoundary label="Institutional Positioning">
+            <COTPositioningStrip />
+          </WidgetErrorBoundary>
+        </div>
+        <WidgetErrorBoundary label="Economic Calendar">
+          <EconomicCalendarWidget />
+        </WidgetErrorBoundary>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatsCard title="Total Trades" value={String(stats?.total ?? 0)} icon={Activity} />
