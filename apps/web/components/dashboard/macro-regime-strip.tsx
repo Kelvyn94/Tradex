@@ -16,7 +16,13 @@ interface MacroSeries {
 }
 
 interface MacroData {
-  series: Record<"DXY" | "US10Y" | "VIX", MacroSeries>;
+  // Partial, not a guaranteed full record: the backend omits any series
+  // whose fetch failed rather than fabricating a value for it (confirmed
+  // in production - DXY has been observed missing while US10Y/VIX
+  // succeed). The type must reflect that a caller cannot assume all
+  // three are always present - the crash this replaced came from
+  // assuming otherwise.
+  series: Partial<Record<"DXY" | "US10Y" | "VIX", MacroSeries>>;
   riskRegime: "RISK_ON" | "ELEVATED" | "RISK_OFF" | null;
 }
 
@@ -53,7 +59,7 @@ export async function MacroRegimeStrip() {
 
   const { DXY, US10Y, VIX } = macro.series;
   const regime = macro.riskRegime ? REGIME_LABEL[macro.riskRegime] : null;
-  const items: Array<{ key: string; series: MacroSeries; format: (v: number) => string }> = [
+  const items: Array<{ key: string; series: MacroSeries | undefined; format: (v: number) => string }> = [
     { key: "DXY", series: DXY, format: (v) => v.toFixed(2) },
     { key: "US10Y", series: US10Y, format: (v) => `${v.toFixed(2)}%` },
     { key: "VIX", series: VIX, format: (v) => v.toFixed(2) },
@@ -77,23 +83,29 @@ export async function MacroRegimeStrip() {
           {items.map(({ key, series, format }) => (
             <div key={key} className="rounded-lg border border-border p-3 text-center">
               <p className="mb-1 text-xs font-bold text-foreground">{key}</p>
-              <p className="tabular-price text-sm font-semibold text-foreground">
-                {format(series.value)}
-              </p>
-              <p
-                className={cn(
-                  "mt-1 flex items-center justify-center gap-1 text-xs",
-                  series.direction === "up"
-                    ? "text-success"
-                    : series.direction === "down"
-                      ? "text-destructive"
-                      : "text-muted-foreground",
-                )}
-              >
-                <DirectionIcon direction={series.direction} />
-                {series.changePercent >= 0 ? "+" : ""}
-                {series.changePercent.toFixed(2)}%
-              </p>
+              {series ? (
+                <>
+                  <p className="tabular-price text-sm font-semibold text-foreground">
+                    {format(series.value)}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-1 flex items-center justify-center gap-1 text-xs",
+                      series.direction === "up"
+                        ? "text-success"
+                        : series.direction === "down"
+                          ? "text-destructive"
+                          : "text-muted-foreground",
+                    )}
+                  >
+                    <DirectionIcon direction={series.direction} />
+                    {series.changePercent >= 0 ? "+" : ""}
+                    {series.changePercent.toFixed(2)}%
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Unavailable</p>
+              )}
             </div>
           ))}
         </div>
