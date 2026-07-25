@@ -49,7 +49,8 @@ async function buildMacroSection() {
 
     const regime = macro.riskRegime ? REGIME_LABEL[macro.riskRegime] : null;
     const regimePrefix = regime ? `${regime}. ` : "";
-    return available(`${regimePrefix}${parts.join(", ")}.`);
+    const caveatSuffix = macro.riskRegimeCaveat ? ` Note: ${macro.riskRegimeCaveat}.` : "";
+    return available(`${regimePrefix}${parts.join(", ")}.${caveatSuffix}`);
   } catch {
     return unavailable("Macro data unavailable.");
   }

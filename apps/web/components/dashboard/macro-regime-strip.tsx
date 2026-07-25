@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, Gauge } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Gauge, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FeedOffline } from "@/components/data-engine/feed-offline";
@@ -24,6 +24,11 @@ interface MacroData {
   // assuming otherwise.
   series: Partial<Record<"DXY" | "US10Y" | "VIX", MacroSeries>>;
   riskRegime: "RISK_ON" | "ELEVATED" | "RISK_OFF" | null;
+  // Set when VIX is moving sharply within its current level-based zone -
+  // the regime label only reflects where VIX sits right now, not today's
+  // move, so a fast spike that hasn't crossed a zone boundary yet can
+  // otherwise look contradictory next to the change% shown per-tile below.
+  riskRegimeCaveat: string | null;
 }
 
 const REGIME_LABEL: Record<string, { text: string; tone: "success" | "warning" | "destructive" }> = {
@@ -79,6 +84,12 @@ export async function MacroRegimeStrip() {
             </Badge>
           )}
         </div>
+        {macro.riskRegimeCaveat && (
+          <p className="mb-3 flex items-start gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
+            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+            {macro.riskRegimeCaveat}
+          </p>
+        )}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {items.map(({ key, series, format }) => (
             <div key={key} className="rounded-lg border border-border p-2 text-center sm:p-3">
