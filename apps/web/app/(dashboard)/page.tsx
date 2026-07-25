@@ -67,6 +67,14 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      <Card>
+        <CardContent className="p-4">
+          <WidgetErrorBoundary label="Market Sentiment">
+            <SentimentWidget />
+          </WidgetErrorBoundary>
+        </CardContent>
+      </Card>
+
       <WidgetErrorBoundary label="SMT Signals">
         <SMTSignalFeed />
       </WidgetErrorBoundary>
@@ -92,23 +100,14 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardContent className="p-4">
-            <h3 className="mb-3 text-sm font-semibold text-foreground">Equity Curve</h3>
-            <WidgetErrorBoundary label="Equity Curve">
-              <EquityChart data={data?.equity ?? []} />
-            </WidgetErrorBoundary>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <WidgetErrorBoundary label="Market Sentiment">
-              <SentimentWidget />
-            </WidgetErrorBoundary>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="mb-3 text-sm font-semibold text-foreground">Equity Curve</h3>
+          <WidgetErrorBoundary label="Equity Curve">
+            <EquityChart data={data?.equity ?? []} />
+          </WidgetErrorBoundary>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-4">
