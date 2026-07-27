@@ -2,7 +2,7 @@
 
 A full-stack trading journal for logging trades, tracking P&L, and analyzing performance across forex and gold — built as a Next.js/Node monorepo backed by PostgreSQL.
 
-**Live app:** [tradex-kelvyn94.vercel.app](https://tradex-kelvyn94.vercel.app)
+**Demo:** see it in action on my [portfolio](https://portfolio-steel-zeta-60.vercel.app/#work) — a live walkthrough of the deployed app is available on request.
 
 <img width="1358" height="577" alt="Tradex dashboard screenshot" src="https://github.com/user-attachments/assets/2a2eb971-7eb1-4ed9-9d45-c75d83c5023f" />
 
