@@ -158,6 +158,70 @@ Rules:
   }
 
   /**
+   * Classifies an FOMC statement's tone as HAWKISH/DOVISH/NEUTRAL. A
+   * genuinely different question from the rate decision itself (that's
+   * a hard number from FRED, computed in fomc.service.js) - the Fed can
+   * hold rates and still sound hawkish (signaling more tightening
+   * ahead), or cut and still sound hawkish (framed as a one-off
+   * "insurance" cut, not the start of an easing cycle). Low temperature
+   * and a strict JSON-only instruction since this is a classification
+   * task, not open-ended writing - consistency matters more than
+   * variety here.
+   */
+  async classifyFOMCStance(statementText, rateDecisionSummary) {
+    const systemPrompt = `You are a senior fixed-income/rates strategist classifying FOMC statement tone for professional traders. Read the actual statement text below and classify it as HAWKISH, DOVISH, or NEUTRAL.
+
+Ground your read in specific, well-established signals - do not rely on vibes:
+- HAWKISH signals: emphasis on inflation risk over growth risk, language like "further tightening may be warranted," "vigilant," "additional firming," dissents favoring a larger hike, upgraded/hardened inflation language, downplaying labor-market softness, removing or hardening a prior easing bias.
+- DOVISH signals: emphasis on growth/employment risk over inflation, language like "patient," softened "data dependent" framing, "additional accommodation," dissents favoring a cut or opposing a hike, softened inflation language, acknowledging economic weakness, opening the door to future cuts.
+- NEUTRAL: balanced language with no clear tilt, or genuinely mixed signals that don't lean either way - do not force a lean that isn't there just to avoid NEUTRAL.
+
+Weigh the ACTUAL RATE DECISION given below too: a hold can still be hawkish (paired with a tightening bias) or dovish (paired with an easing bias); a cut can still be hawkish (framed as a one-off, not a cycle start); a hike can still be dovish (framed as the last one needed).
+
+Respond with ONLY valid JSON, no markdown fences, no prose outside the JSON, in exactly this shape:
+{"stance": "HAWKISH" | "DOVISH" | "NEUTRAL", "confidence": <number 0-1>, "rationale": "<2-3 sentences citing specific language from the statement>", "keyPhrases": ["<short exact quote from the statement>", "..."]}`;
+
+    const userPrompt = `RATE DECISION: ${rateDecisionSummary}\n\nSTATEMENT TEXT:\n${statementText}`;
+
+    const result = await this._makeRequest(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      this.defaultModel,
+      0.2,
+      500,
+    );
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    try {
+      // Models occasionally wrap JSON in ```json fences despite the
+      // explicit instruction not to - strip defensively rather than
+      // fail on a minor, common formatting slip.
+      const cleaned = result.content
+        .trim()
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/```\s*$/i, "");
+      const parsed = JSON.parse(cleaned);
+      if (!["HAWKISH", "DOVISH", "NEUTRAL"].includes(parsed.stance)) {
+        return { success: false, error: `Model returned unexpected stance value: ${parsed.stance}` };
+      }
+      return {
+        success: true,
+        stance: parsed.stance,
+        confidence: parsed.confidence,
+        rationale: parsed.rationale,
+        keyPhrases: parsed.keyPhrases,
+      };
+    } catch (e) {
+      return { success: false, error: `Failed to parse AI response as JSON: ${e.message}` };
+    }
+  }
+
+  /**
    * Analyze ICT patterns
    */
   async analyzeICTPatterns(asset, structure, orderBlocks, fvgs) {

@@ -19,6 +19,7 @@ const insightsRoutes = require("./src/routes/insightsRoutes");
 const economicCalendarRoutes = require("./src/routes/economicCalendarRoutes");
 const smtRoutes = require("./src/routes/smtRoutes");
 const briefRoutes = require("./src/routes/briefRoutes");
+const fomcRoutes = require("./src/routes/fomcRoutes");
 const MarketDataService = require("./src/services/marketData.service");
 const websocketService = require("./src/services/websocket.service");
 const dataEngineService = require("./src/services/dataEngine.service");
@@ -128,6 +129,7 @@ app.use("/api/insights", insightsRoutes);
 app.use("/api/calendar", economicCalendarRoutes);
 app.use("/api/smt", smtRoutes);
 app.use("/api/brief", briefRoutes);
+app.use("/api/fomc", fomcRoutes);
 
 // Market Data Routes (direct)
 app.get("/api/market/prices", async (req, res) => {

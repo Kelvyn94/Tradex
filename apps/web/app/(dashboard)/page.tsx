@@ -10,6 +10,7 @@ import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar
 import { CorrelationWidget } from "@/components/dashboard/correlation-widget";
 import { MacroRegimeStrip } from "@/components/dashboard/macro-regime-strip";
 import { SMTSignalFeed } from "@/components/dashboard/smt-signal-feed";
+import { FOMCOutcomeWidget } from "@/components/dashboard/fomc-outcome-widget";
 import { MarketBriefWidget } from "@/components/dashboard/market-brief-widget";
 import { WidgetErrorBoundary } from "@/components/boundaries/widget-error-boundary";
 import { apiFetchJson } from "@/lib/api-client";
@@ -60,6 +61,9 @@ export default async function DashboardPage() {
         <div className="space-y-4">
           <WidgetErrorBoundary label="Economic Calendar">
             <EconomicCalendarWidget />
+          </WidgetErrorBoundary>
+          <WidgetErrorBoundary label="FOMC Outcome">
+            <FOMCOutcomeWidget />
           </WidgetErrorBoundary>
           <WidgetErrorBoundary label="Correlation">
             <CorrelationWidget />
