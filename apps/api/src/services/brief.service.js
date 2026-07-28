@@ -11,6 +11,7 @@
 
 const dataEngineService = require("./dataEngine.service");
 const economicCalendarService = require("./economicCalendar.service");
+const { easternDateString } = economicCalendarService;
 
 const REGIME_LABEL = {
   RISK_ON: "Risk-On",
@@ -102,12 +103,15 @@ async function buildCalendarSection(windowDays) {
     const releases = await economicCalendarService.getUpcomingReleases();
     if (releases === null) return unavailable("Economic calendar unavailable.");
 
-    const now = Date.now();
-    const cutoff = now + windowDays * 24 * 60 * 60 * 1000;
-    const inWindow = releases.filter((r) => {
-      const t = new Date(r.date).getTime();
-      return t >= now && t <= cutoff;
-    });
+    // Date-string comparison, not epoch timestamps: r.date is a
+    // US-Eastern-dated "YYYY-MM-DD" release date, and comparing it via
+    // new Date(r.date).getTime() parses it as UTC midnight - which is
+    // hours behind the real Eastern day, and made "today's" own release
+    // look like it had already passed (see economicCalendar.service.js's
+    // easternDateString for the matching bug on the fetch side).
+    const todayStr = easternDateString(new Date());
+    const cutoffStr = easternDateString(new Date(Date.now() + windowDays * 24 * 60 * 60 * 1000));
+    const inWindow = releases.filter((r) => r.date >= todayStr && r.date <= cutoffStr);
 
     if (inWindow.length === 0) {
       return available(`Nothing high-impact scheduled in the next ${windowDays} days.`);

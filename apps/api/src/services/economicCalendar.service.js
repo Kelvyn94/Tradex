@@ -40,6 +40,20 @@
 // release has only a handful of dates in any 90-day window).
 const axios = require("axios");
 
+// Economic releases (BLS/BEA/Fed) are dated in US Eastern time, not UTC.
+// new Date().toISOString() always gives the UTC calendar date - for
+// roughly 4-5 hours every evening (8pm-midnight Eastern), UTC has
+// already rolled to the next day while it's still "today" in the US.
+// Computing the query window from raw UTC during that window sent FRED
+// a realtime_start one day ahead of the real US date, silently
+// excluding any release actually dated "today" from the results (this
+// is what caused a real release on the 29th to only show starting from
+// the 30th). en-CA locale formats as YYYY-MM-DD, matching FRED's
+// expected date format directly.
+function easternDateString(date) {
+  return date.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+}
+
 const HIGH_IMPACT_RELEASES = [
   { id: 50, name: "Employment Situation" }, // Non-Farm Payrolls
   { id: 10, name: "Consumer Price Index" },
@@ -83,10 +97,8 @@ class EconomicCalendarService {
     }
 
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const ninetyDaysOut = new Date(now + 90 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0];
+      const today = easternDateString(new Date());
+      const ninetyDaysOut = easternDateString(new Date(now + 90 * 24 * 60 * 60 * 1000));
 
       const perReleaseResults = await Promise.all(
         HIGH_IMPACT_RELEASES.map(async (release) => {
@@ -150,3 +162,4 @@ class EconomicCalendarService {
 }
 
 module.exports = new EconomicCalendarService();
+module.exports.easternDateString = easternDateString;
