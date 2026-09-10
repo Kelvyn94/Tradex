@@ -2,13 +2,13 @@
  * Data Engine Routes
  * Exposes Data Engine API endpoints to frontend
  */
-
 const express = require("express");
 const router = express.Router();
 const dataEngineService = require("../services/dataEngine.service");
+const cacheMiddleware = require("../middleware/cache");
 
-// Get AI Insights
-router.get("/insights", async (req, res) => {
+// Get AI Insights (Cache 15 mins)
+router.get("/insights", cacheMiddleware(900), async (req, res) => {
   try {
     const { asset, limit } = req.query;
     const result = await dataEngineService.getInsights(asset, limit);
@@ -18,7 +18,7 @@ router.get("/insights", async (req, res) => {
   }
 });
 
-// Generate new insights
+// Generate new insights (POST - uncached)
 router.post("/insights/generate", async (req, res) => {
   try {
     const { asset } = req.body;
@@ -29,8 +29,8 @@ router.post("/insights/generate", async (req, res) => {
   }
 });
 
-// Get trading signals
-router.get("/signals", async (req, res) => {
+// Get trading signals (Cache 10 mins)
+router.get("/signals", cacheMiddleware(600), async (req, res) => {
   try {
     const { asset, limit } = req.query;
     const result = await dataEngineService.getSignals(asset, limit);
@@ -40,8 +40,8 @@ router.get("/signals", async (req, res) => {
   }
 });
 
-// Get market data
-router.get("/candles/:asset", async (req, res) => {
+// Get market data candles (Cache 1 min)
+router.get("/candles/:asset", cacheMiddleware(60), async (req, res) => {
   try {
     const { asset } = req.params;
     const { timeframe, limit } = req.query;
@@ -52,7 +52,7 @@ router.get("/candles/:asset", async (req, res) => {
   }
 });
 
-// Get latest price
+// Get latest price (Uncached for live data)
 router.get("/price/:asset", async (req, res) => {
   try {
     const { asset } = req.params;
@@ -63,8 +63,8 @@ router.get("/price/:asset", async (req, res) => {
   }
 });
 
-// Get correlation matrix
-router.get("/correlation", async (req, res) => {
+// Get correlation matrix (Cache 1 hour)
+router.get("/correlation", cacheMiddleware(3600), async (req, res) => {
   try {
     const result = await dataEngineService.getCorrelation();
     res.json(result);
@@ -73,8 +73,8 @@ router.get("/correlation", async (req, res) => {
   }
 });
 
-// Get ICT analysis
-router.get("/ict/:asset", async (req, res) => {
+// Get ICT analysis (Cache 5 mins)
+router.get("/ict/:asset", cacheMiddleware(300), async (req, res) => {
   try {
     const { asset } = req.params;
     const result = await dataEngineService.getICT(asset);
@@ -84,8 +84,8 @@ router.get("/ict/:asset", async (req, res) => {
   }
 });
 
-// Get summary
-router.get("/summary", async (req, res) => {
+// Get summary (Cache 30 mins)
+router.get("/summary", cacheMiddleware(1800), async (req, res) => {
   try {
     const result = await dataEngineService.getSummary();
     res.json(result);
@@ -94,24 +94,19 @@ router.get("/summary", async (req, res) => {
   }
 });
 
-// Get CFTC COT positioning (Commercial vs Non-Commercial vs small traders)
-router.get("/cot", async (req, res) => {
+// Get CFTC COT positioning (Cache 2 hours)
+router.get("/cot", cacheMiddleware(7200), async (req, res) => {
   try {
     const result = await dataEngineService.getCOTPositioning();
     res.json(result);
   } catch (error) {
-    // The Data Engine returns 503 when positioning is genuinely
-    // unavailable (no data for any tracked asset) - propagate that
-    // distinct status rather than flattening everything to 500, so the
-    // frontend can render an explicit "unavailable" state instead of a
-    // generic error.
     const status = error.response?.status === 503 ? 503 : 500;
     res.status(status).json({ error: error.response?.data?.detail || error.message });
   }
 });
 
-// Get DXY / 10Y Treasury yield / VIX macro regime snapshot
-router.get("/macro", async (req, res) => {
+// Get DXY / 10Y Treasury yield / VIX macro regime snapshot (Cache 1 hour)
+router.get("/macro", cacheMiddleware(3600), async (req, res) => {
   try {
     const result = await dataEngineService.getMacroRegime();
     res.json(result);
@@ -121,14 +116,12 @@ router.get("/macro", async (req, res) => {
   }
 });
 
-// Run a backtest
+// Run a backtest (POST - uncached)
 router.post("/backtest/run", async (req, res) => {
   try {
     const result = await dataEngineService.runBacktest(req.body);
     res.json(result);
   } catch (error) {
-    // Propagate the Data Engine's actual status (400 bad params, 503 no
-    // data, 422 engine error) instead of flattening everything to 500.
     const status = error.response?.status || 500;
     res.status(status).json({ error: error.response?.data?.detail || error.message });
   }
