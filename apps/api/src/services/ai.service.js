@@ -10,7 +10,7 @@ class AIService {
     this.apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
     this.baseURL = "https://api.groq.com/openai/v1";
     this.defaultModel = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
-    this.fastModel = "llama-3.1-8b-instant";
+    this.fastModel = process.env.GROQ_FAST_MODEL || "llama-3.1-8b-instant";
 
     if (!this.apiKey) {
       console.warn("⚠️ No Groq API key found! Please set GROQ_API_KEY in .env");
