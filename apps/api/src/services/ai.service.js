@@ -9,7 +9,7 @@ class AIService {
   constructor() {
     this.apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
     this.baseURL = "https://api.groq.com/openai/v1";
-    this.defaultModel = "llama-3.3-70b-versatile";
+    this.defaultModel = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
     this.fastModel = "llama-3.1-8b-instant";
 
     if (!this.apiKey) {
