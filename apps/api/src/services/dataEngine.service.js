@@ -12,11 +12,7 @@ class DataEngineService {
   constructor() {
     this.client = axios.create({
       baseURL: DATA_ENGINE_URL,
-      // Render free tier spins the Data Engine down after ~15 min idle and
-      // takes up to ~50s to wake on the next request. 15s covers a slow-but-
-      // warm response; true cold starts still fail once, which is why
-      // startKeepAlive() below pings it regularly to avoid full sleep.
-      timeout: 15000,
+      timeout: 8000, // Reduced from 15s to fail-fast before Render limits
     });
     this.keepAliveInterval = null;
   }
